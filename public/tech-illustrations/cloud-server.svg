@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4facfe;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00f2fe;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="cloudGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.9" />
+      <stop offset="100%" style="stop-color:#e3f2fd;stop-opacity:0.8" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="600" fill="url(#bgGrad3)"/>
+  
+  <!-- Main cloud -->
+  <ellipse cx="400" cy="200" rx="180" ry="80" fill="url(#cloudGrad)"/>
+  <ellipse cx="320" cy="180" rx="100" ry="60" fill="url(#cloudGrad)"/>
+  <ellipse cx="480" cy="180" rx="120" ry="70" fill="url(#cloudGrad)"/>
+  <ellipse cx="400" cy="140" rx="80" ry="50" fill="url(#cloudGrad)"/>
+  
+  <!-- Server racks -->
+  <rect x="200" y="350" width="80" height="120" rx="5" fill="#2c3e50"/>
+  <rect x="210" y="360" width="60" height="15" fill="#3498db">
+    <animate attributeName="fill" values="#3498db;#2ecc71;#3498db" dur="2s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="210" y="380" width="60" height="15" fill="#e74c3c">
+    <animate attributeName="fill" values="#e74c3c;#f39c12;#e74c3c" dur="2.5s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="210" y="400" width="60" height="15" fill="#9b59b6">
+    <animate attributeName="fill" values="#9b59b6;#1abc9c;#9b59b6" dur="3s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="210" y="420" width="60" height="15" fill="#f1c40f">
+    <animate attributeName="fill" values="#f1c40f;#e67e22;#f1c40f" dur="1.8s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="210" y="440" width="60" height="15" fill="#2ecc71">
+    <animate attributeName="fill" values="#2ecc71;#3498db;#2ecc71" dur="2.2s" repeatCount="indefinite"/>
+  </rect>
+  
+  <!-- Second server -->
+  <rect x="320" y="350" width="80" height="120" rx="5" fill="#34495e"/>
+  <rect x="330" y="360" width="60" height="15" fill="#1abc9c">
+    <animate attributeName="fill" values="#1abc9c;#e74c3c;#1abc9c" dur="1.5s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="330" y="380" width="60" height="15" fill="#3498db">
+    <animate attributeName="fill" values="#3498db;#9b59b6;#3498db" dur="2.8s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="330" y="400" width="60" height="15" fill="#f39c12">
+    <animate attributeName="fill" values="#f39c12;#2ecc71;#f39c12" dur="2.1s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="330" y="420" width="60" height="15" fill="#e67e22">
+    <animate attributeName="fill" values="#e67e22;#3498db;#e67e22" dur="3.2s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="330" y="440" width="60" height="15" fill="#9b59b6">
+    <animate attributeName="fill" values="#9b59b6;#f1c40f;#9b59b6" dur="1.9s" repeatCount="indefinite"/>
+  </rect>
+  
+  <!-- Third server -->
+  <rect x="440" y="350" width="80" height="120" rx="5" fill="#2c3e50"/>
+  <rect x="450" y="360" width="60" height="15" fill="#e74c3c">
+    <animate attributeName="fill" values="#e74c3c;#1abc9c;#e74c3c" dur="2.7s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="450" y="380" width="60" height="15" fill="#2ecc71">
+    <animate attributeName="fill" values="#2ecc71;#f39c12;#2ecc71" dur="1.6s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="450" y="400" width="60" height="15" fill="#3498db">
+    <animate attributeName="fill" values="#3498db;#e67e22;#3498db" dur="2.4s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="450" y="420" width="60" height="15" fill="#f1c40f">
+    <animate attributeName="fill" values="#f1c40f;#9b59b6;#f1c40f" dur="3.1s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="450" y="440" width="60" height="15" fill="#1abc9c">
+    <animate attributeName="fill" values="#1abc9c;#e74c3c;#1abc9c" dur="2.3s" repeatCount="indefinite"/>
+  </rect>
+  
+  <!-- Data transfer lines -->
+  <path d="M400 280 L240 350" stroke="#fff" stroke-width="3" opacity="0.7" stroke-dasharray="10,5">
+    <animate attributeName="stroke-dashoffset" values="0;-15;0" dur="1s" repeatCount="indefinite"/>
+  </path>
+  <path d="M400 280 L360 350" stroke="#fff" stroke-width="3" opacity="0.7" stroke-dasharray="10,5">
+    <animate attributeName="stroke-dashoffset" values="0;-15;0" dur="1.2s" repeatCount="indefinite"/>
+  </path>
+  <path d="M400 280 L480 350" stroke="#fff" stroke-width="3" opacity="0.7" stroke-dasharray="10,5">
+    <animate attributeName="stroke-dashoffset" values="0;-15;0" dur="0.8s" repeatCount="indefinite"/>
+  </path>
+  
+  <!-- Floating data packets -->
+  <circle cx="600" cy="100" r="8" fill="#3498db" opacity="0.6">
+    <animate attributeName="cy" values="100;80;100" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  <rect x="680" y="300" width="15" height="15" fill="#e74c3c" opacity="0.5" transform="rotate(45 687.5 307.5)">
+    <animateTransform attributeName="transform" type="rotate" values="45 687.5 307.5;90 687.5 307.5;45 687.5 307.5" dur="3s" repeatCount="indefinite"/>
+  </rect>
+  <polygon points="100,400 120,380 140,400 120,420" fill="#2ecc71" opacity="0.4">
+    <animate attributeName="opacity" values="0.4;0.8;0.4" dur="2.5s" repeatCount="indefinite"/>
+  </polygon>
+</svg>

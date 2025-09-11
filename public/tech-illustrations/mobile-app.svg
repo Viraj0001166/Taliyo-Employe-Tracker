@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad5" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff9a9e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#fecfef;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="phoneGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2c3e50;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34495e;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="600" fill="url(#bgGrad5)"/>
+  
+  <!-- Phone body -->
+  <rect x="300" y="100" width="200" height="400" rx="25" fill="url(#phoneGrad)"/>
+  <rect x="310" y="130" width="180" height="320" rx="15" fill="#1a1a2e"/>
+  
+  <!-- Screen content -->
+  <rect x="320" y="140" width="160" height="30" rx="5" fill="#3498db" opacity="0.8">
+    <animate attributeName="opacity" values="0.8;1;0.8" dur="2s" repeatCount="indefinite"/>
+  </rect>
+  
+  <!-- App icons -->
+  <rect x="330" y="190" width="30" height="30" rx="8" fill="#e74c3c">
+    <animate attributeName="fill" values="#e74c3c;#f39c12;#e74c3c" dur="3s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="370" y="190" width="30" height="30" rx="8" fill="#2ecc71">
+    <animate attributeName="fill" values="#2ecc71;#1abc9c;#2ecc71" dur="2.5s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="410" y="190" width="30" height="30" rx="8" fill="#9b59b6">
+    <animate attributeName="fill" values="#9b59b6;#8e44ad;#9b59b6" dur="2.8s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="450" y="190" width="30" height="30" rx="8" fill="#f39c12">
+    <animate attributeName="fill" values="#f39c12;#e67e22;#f39c12" dur="3.2s" repeatCount="indefinite"/>
+  </rect>
+  
+  <rect x="330" y="230" width="30" height="30" rx="8" fill="#1abc9c">
+    <animate attributeName="fill" values="#1abc9c;#16a085;#1abc9c" dur="2.3s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="370" y="230" width="30" height="30" rx="8" fill="#e67e22">
+    <animate attributeName="fill" values="#e67e22;#d35400;#e67e22" dur="2.7s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="410" y="230" width="30" height="30" rx="8" fill="#3498db">
+    <animate attributeName="fill" values="#3498db;#2980b9;#3498db" dur="2.1s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="450" y="230" width="30" height="30" rx="8" fill="#95a5a6">
+    <animate attributeName="fill" values="#95a5a6;#7f8c8d;#95a5a6" dur="2.9s" repeatCount="indefinite"/>
+  </rect>
+  
+  <!-- Notification -->
+  <rect x="320" y="280" width="160" height="40" rx="8" fill="#2c3e50" opacity="0.9">
+    <animate attributeName="opacity" values="0.9;1;0.9" dur="1.5s" repeatCount="indefinite"/>
+  </rect>
+  <circle cx="340" cy="300" r="8" fill="#e74c3c"/>
+  <rect x="355" y="290" width="80" height="4" fill="#ecf0f1"/>
+  <rect x="355" y="300" width="60" height="3" fill="#bdc3c7"/>
+  <rect x="355" y="310" width="100" height="3" fill="#95a5a6"/>
+  
+  <!-- Bottom navigation -->
+  <rect x="320" y="400" width="160" height="40" rx="5" fill="#34495e"/>
+  <circle cx="350" cy="420" r="8" fill="#3498db">
+    <animate attributeName="fill" values="#3498db;#2ecc71;#3498db" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="400" cy="420" r="8" fill="#e74c3c">
+    <animate attributeName="fill" values="#e74c3c;#f39c12;#e74c3c" dur="2.2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="450" cy="420" r="8" fill="#9b59b6">
+    <animate attributeName="fill" values="#9b59b6;#1abc9c;#9b59b6" dur="2.5s" repeatCount="indefinite"/>
+  </circle>
+  
+  <!-- Floating elements around phone -->
+  <circle cx="200" cy="150" r="20" fill="#3498db" opacity="0.4">
+    <animate attributeName="cy" values="150;130;150" dur="3s" repeatCount="indefinite"/>
+  </circle>
+  
+  <rect x="580" y="200" width="30" height="30" fill="#e74c3c" opacity="0.5" transform="rotate(45 595 215)">
+    <animateTransform attributeName="transform" type="rotate" values="45 595 215;90 595 215;45 595 215" dur="4s" repeatCount="indefinite"/>
+  </rect>
+  
+  <polygon points="150,400 180,370 210,400 180,430" fill="#2ecc71" opacity="0.3">
+    <animate attributeName="opacity" values="0.3;0.7;0.3" dur="2.5s" repeatCount="indefinite"/>
+  </polygon>
+  
+  <circle cx="600" cy="450" r="15" fill="#f39c12" opacity="0.6">
+    <animate attributeName="cy" values="450;430;450" dur="2.8s" repeatCount="indefinite"/>
+  </circle>
+  
+  <!-- Data signals -->
+  <path d="M250 200 Q200 150 150 200" stroke="#fff" stroke-width="3" opacity="0.6" fill="none">
+    <animate attributeName="opacity" values="0.6;1;0.6" dur="1.5s" repeatCount="indefinite"/>
+  </path>
+  <path d="M550 250 Q600 200 650 250" stroke="#fff" stroke-width="3" opacity="0.6" fill="none">
+    <animate attributeName="opacity" values="0.6;1;0.6" dur="1.8s" repeatCount="indefinite"/>
+  </path>
+</svg>

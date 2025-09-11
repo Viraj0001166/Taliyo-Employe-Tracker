@@ -1,0 +1,21 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Chat attachments: aiChats/{adminId}/sessions/{sessionId}/attachments/{file}
+    match /aiChats/{adminId}/sessions/{sessionId}/attachments/{fileId} {
+      allow read, write: if request.auth != null && request.auth.uid == adminId;
+    }
+
+    // User profile pictures
+    match /users/{userId}/profile/{fileId} {
+      // Publicly readable avatars (safe content only), write restricted to owner
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Default deny for everything else unless explicitly allowed above
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

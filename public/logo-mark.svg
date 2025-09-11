@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Brand mark">
+  <rect width="512" height="512" fill="none"/>
+  <!-- Stylized T mark -->
+  <g fill="#6B5BD6">
+    <!-- Top bar with cut angles -->
+    <path d="M120 160 L200 160 L224 184 L288 184 L312 160 L392 160 L368 184 L304 184 L304 184 L208 184 L144 184 Z"/>
+    <!-- Stem -->
+    <path d="M248 200 L264 200 L264 360 L248 376 L232 360 L232 200 Z"/>
+  </g>
+</svg>

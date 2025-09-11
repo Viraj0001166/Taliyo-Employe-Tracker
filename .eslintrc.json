@@ -1,0 +1,14 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "ignorePatterns": [
+    "**/*.backup.tsx",
+    "**/*.backup.ts",
+    ".next/**",
+    "node_modules/**"
+  ],
+  "rules": {
+    "no-console": "off",
+    "@next/next/no-img-element": "off",
+    "@next/next/no-server-import-in-client": "off"
+  }
+}

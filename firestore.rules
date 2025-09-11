@@ -1,0 +1,201 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if a user is an admin
+    function isAdmin() {
+      // Check if the user is authenticated and their user document has role 'admin'
+      return request.auth != null && exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Helper function for a hardcoded super admin email (bypass when user doc is missing)
+    // IMPORTANT: Update the email below to your super admin email.
+    function isSuperAdmin() {
+      return request.auth != null && request.auth.token.email == 'taliyotechnologies@gmail.com';
+    }
+    
+    // Helper function to check if the user is the owner of a document
+    function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+    }
+
+    // Validation helpers
+    function userSelfUpdateAllowed(userId) {
+      let allowed = ['name','avatar','title','department','employeeCode','phone','phoneHidden','locationCity','locationState','locationCountry','joiningDate','reportingManager','roleDescription','linkedin','instagram','github'];
+      let changed = request.resource.data.diff(resource.data).changedKeys();
+      return isOwner(userId) &&
+             changed.hasOnly(allowed) &&
+             (!changed.hasAny(['name']) || request.resource.data.name is string) &&
+             (!changed.hasAny(['avatar']) || request.resource.data.avatar is string) &&
+             (!changed.hasAny(['title']) || request.resource.data.title is string) &&
+             (!changed.hasAny(['department']) || request.resource.data.department is string) &&
+             (!changed.hasAny(['employeeCode']) || request.resource.data.employeeCode is string) &&
+             (!changed.hasAny(['phone']) || request.resource.data.phone is string) &&
+             (!changed.hasAny(['phoneHidden']) || request.resource.data.phoneHidden is bool) &&
+             (!changed.hasAny(['locationCity']) || request.resource.data.locationCity is string) &&
+             (!changed.hasAny(['locationState']) || request.resource.data.locationState is string) &&
+             (!changed.hasAny(['locationCountry']) || request.resource.data.locationCountry is string) &&
+             (!changed.hasAny(['joiningDate']) || request.resource.data.joiningDate is string) &&
+             (!changed.hasAny(['reportingManager']) || request.resource.data.reportingManager is string) &&
+             (!changed.hasAny(['roleDescription']) || request.resource.data.roleDescription is string) &&
+             (!changed.hasAny(['linkedin']) || request.resource.data.linkedin is string) &&
+             (!changed.hasAny(['instagram']) || request.resource.data.instagram is string) &&
+             (!changed.hasAny(['github']) || request.resource.data.github is string);
+    }
+
+    function isValidTaskEmployeeUpdate() {
+      return request.resource.data.diff(resource.data).changedKeys().hasOnly(['isCompleted']) &&
+             request.resource.data.isCompleted is bool;
+    }
+
+    function isValidDailyLogCreate() {
+      return request.resource.data.employeeId is string &&
+             isOwner(request.resource.data.employeeId) &&
+             request.resource.data.date is string &&
+             request.resource.data.submittedAt is string &&
+             request.resource.data.timestamp is timestamp;
+    }
+
+    // Rules for the 'users' collection
+    match /users/{userId} {
+      // Any authenticated user can read the user list (for directories).
+      allow read: if request.auth != null;
+      
+      // Only admins create user docs; enforce basic schema.
+      allow create: if (isAdmin() || isSuperAdmin()) &&
+                    request.resource.data.keys().hasAll(['name','email','role']) &&
+                    request.resource.data.name is string &&
+                    request.resource.data.email is string &&
+                    (request.resource.data.role == 'admin' || request.resource.data.role == 'employee') &&
+                    (!request.resource.data.keys().hasAny(['avatar']) || request.resource.data.avatar is string);
+
+      // Admins can update anything; users can only update safe fields (name, avatar).
+      allow update: if (isAdmin() || isSuperAdmin()) || userSelfUpdateAllowed(userId);
+      
+      // Only an admin can delete a user.
+      allow delete: if (isAdmin() || isSuperAdmin());
+    }
+    
+    // Rules for 'dailyLogs'
+    match /dailyLogs/{logId} {
+        // An employee can create their own logs with minimal schema.
+        allow create: if isValidDailyLogCreate();
+        // Admins can read all logs. An employee can read their own logs. Super admin allowed.
+        allow read: if isAdmin() || isSuperAdmin() || (resource.data.employeeId == request.auth.uid);
+        // Admins may update/delete logs for correction; employees cannot.
+        allow update, delete: if isAdmin() || isSuperAdmin();
+    }
+    
+    // Rules for 'tasks'
+    match /tasks/{taskId} {
+        // Admins can create and delete tasks; validate schema on create.
+        allow create: if (isAdmin() || isSuperAdmin()) &&
+                      request.resource.data.keys().hasAll(['employeeId','task','assignedBy','isCompleted','assignedAt']) &&
+                      request.resource.data.employeeId is string &&
+                      request.resource.data.task is string &&
+                      request.resource.data.assignedBy is string &&
+                      request.resource.data.isCompleted is bool &&
+                      request.resource.data.assignedAt is timestamp &&
+                      exists(/databases/$(database)/documents/users/$(request.resource.data.employeeId));
+        allow delete: if isAdmin() || isSuperAdmin();
+
+        // Admins can read/update all tasks. Employees can read their own tasks and only toggle isCompleted.
+        allow read: if isAdmin() || isSuperAdmin() || (resource.data.employeeId == request.auth.uid);
+        allow update: if isAdmin() || isSuperAdmin() || (resource.data.employeeId == request.auth.uid && isValidTaskEmployeeUpdate());
+    }
+
+    // Rules for 'visitorLogs'
+    match /visitorLogs/{logId} {
+        // Employees can create their own logs when they log in. Admins can read all logs.
+        allow create: if isOwner(request.resource.data.employeeId) &&
+                      request.resource.data.employeeId is string &&
+                      request.resource.data.employeeName is string &&
+                      request.resource.data.employeeEmail is string &&
+                      request.resource.data.loginTime is timestamp &&
+                      request.resource.data.ipAddress is string &&
+                      request.resource.data.userAgent is string;
+        // Allow admins, super admin (by email), or the employee themselves to read
+        allow read: if isAdmin() || isSuperAdmin() || (resource.data.employeeId == request.auth.uid);
+    }
+
+    // Rules for various configuration/resource collections
+    match /resources/{docId} {
+        allow read: if request.auth != null;
+        allow create, update: if (isAdmin() || isSuperAdmin()) &&
+                              request.resource.data.category is string &&
+                              request.resource.data.title is string &&
+                              request.resource.data.content is string;
+        allow delete: if isAdmin() || isSuperAdmin();
+    }
+    match /announcements/latest {
+        allow read: if request.auth != null;
+        allow create, update: if (isAdmin() || isSuperAdmin()) &&
+                              request.resource.data.message is string &&
+                              request.resource.data.updatedBy is string;
+        allow delete: if isAdmin() || isSuperAdmin();
+    }
+    match /announcements/{docId} {
+        allow read: if request.auth != null;
+    }
+    match /taskFields/{docId} {
+        allow read: if request.auth != null;
+        allow create, update: if (isAdmin() || isSuperAdmin()) &&
+                              request.resource.data.label is string &&
+                              request.resource.data.placeholder is string &&
+                              request.resource.data.name is string &&
+                              request.resource.data.name.matches('^[A-Za-z0-9_]+$');
+        allow delete: if isAdmin() || isSuperAdmin();
+    }
+    match /fakeEmployees/{docId} {
+        allow read: if request.auth != null;
+        allow create, update: if (isAdmin() || isSuperAdmin()) &&
+                              request.resource.data.name is string &&
+                              request.resource.data.email is string &&
+                              (request.resource.data.status == 'Active' || request.resource.data.status == 'Training' || request.resource.data.status == 'Inactive') &&
+                              request.resource.data.joinDate is timestamp;
+        allow delete: if isAdmin() || isSuperAdmin();
+    }
+    match /genericApiKeys/{docId} {
+        // Sensitive: restrict reads to admins only.
+        allow read: if isAdmin() || isSuperAdmin();
+        allow create, update: if (isAdmin() || isSuperAdmin()) &&
+                              request.resource.data.websiteName is string &&
+                              request.resource.data.apiKey is string;
+        allow delete: if isAdmin() || isSuperAdmin();
+    }
+    // Specific doc: webhook URL needs to be readable by employees for Google Sheet post.
+    match /config/googleSheetWebhookUrl {
+        allow read: if request.auth != null;
+        allow write: if (isAdmin() || isSuperAdmin()) && request.resource.data.url is string;
+    }
+    // Other config docs restricted to admins
+    match /config/{docId} {
+        allow read, write: if isAdmin() || isSuperAdmin();
+    }
+
+    // Example: Allow user and admin access to activityLogs subcollection under users
+    match /users/{userId}/activityLogs/{logId} {
+        allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin() || isSuperAdmin());
+    }
+
+    // Rules for per-user AI Chat history (cross-device sync for employees)
+    match /aiChat/{uid} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Rules for AI Memories (per-admin persistent memory for AI assistant)
+    match /aiMemories/{adminId}/memories/{memoryId} {
+        // Allow the owner admin, any admin, or super admin to read/write their memories
+        allow read, write: if request.auth != null && (isOwner(adminId) || isAdmin() || isSuperAdmin());
+    }
+
+    // Rules for AI Chats (per-admin chat sessions and messages)
+    match /aiChats/{adminId}/sessions/{sessionId} {
+        allow read, write: if request.auth != null && (isOwner(adminId) || isAdmin() || isSuperAdmin());
+    }
+    match /aiChats/{adminId}/sessions/{sessionId}/messages/{messageId} {
+        allow read, write: if request.auth != null && (isOwner(adminId) || isAdmin() || isSuperAdmin());
+    }
+  }
+}

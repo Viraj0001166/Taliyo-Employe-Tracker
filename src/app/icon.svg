@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="App Icon">
+  <circle cx="256" cy="256" r="256" fill="#111215"/>
+  <g fill="#6B5BD6">
+    <path d="M128 176h96l24 24h88l24-24h96l-24 24h-96-112-96z"/>
+    <path d="M240 208h32v176l-16 16-16-16z"/>
+  </g>
+</svg>

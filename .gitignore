@@ -1,0 +1,28 @@
+# Node.js dependencies
+/node_modules
+
+# Build outputs
+/.next
+/out
+/build
+/.genkit
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+firebase-debug.log
+firestore-debug.log
+
+# Misc system files
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+
+# Vercel / deployment cache
+.vercel
+
+# Environment files
+.env*
+!.env.example
