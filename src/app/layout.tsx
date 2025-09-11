@@ -3,7 +3,6 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { cn } from '@/lib/utils';
-import LicenseGuard from '@/components/common/license-guard';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -29,8 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("h-full", inter.variable)} suppressHydrationWarning>
       <body className="font-body antialiased h-full">
-        {children}
-        <LicenseGuard />
+        {children}      
         <footer className="w-full text-center text-gray-400 text-sm py-6">
           <div>Developed by Taliyo Technologies</div>
           <div id="developer-name">Made by Viraj Srivastav</div>
