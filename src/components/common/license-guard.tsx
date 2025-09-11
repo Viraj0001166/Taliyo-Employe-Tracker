@@ -1,16 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
-import { checkLicense } from '@/utils/licenseCheck';
+import React from 'react';
 
-export default function LicenseGuard() {
-  useEffect(() => {
-    checkLicense();
-  }, []);
-
-  return (
-    <div className="w-full text-center text-gray-400 text-xs mt-4">
-      This project is protected. Please contact Taliyo Technologies for a valid license key.
-    </div>
-  );
+export default function LicenseGate({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }
