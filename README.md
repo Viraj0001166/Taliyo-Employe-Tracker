@@ -2,6 +2,14 @@
 
 A modern employee performance tracking and admin portal built with Next.js, Firebase, and AI-powered insights.
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-15-black?logo=next.js" />
+  <img src="https://img.shields.io/badge/React-18-61dafb?logo=react&logoColor=white" />
+  <img src="https://img.shields.io/badge/Firebase-Auth%20%7C%20Firestore%20%7C%20Storage-ffca28?logo=firebase&logoColor=black" />
+  <img src="https://img.shields.io/badge/TailwindCSS-3-38bdf8?logo=tailwindcss&logoColor=white" />
+  <img src="https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript&logoColor=white" />
+</p>
+
 > Internal codename: LeadTrack Pulse (see `docs/blueprint.md`).
 
 ## 🚀 Features
@@ -25,6 +33,87 @@ A modern employee performance tracking and admin portal built with Next.js, Fire
 - UX / UI
   - Shadcn/ui component system, semantic tokens, responsive layouts, keyboard-friendly
   - Email masking for non-admin users in sensitive lists (privacy-first)
+
+### ✅ Full feature list (A–Z)
+
+- Authentication & Sessions
+  - Email/Password auth, protected routes, graceful auth-state handling
+  - Session controls: logout current device, revoke all sessions, export my data
+- Admin: User Management
+  - Create/Edit employees, role switch (employee/admin), set password, delete user (with optional Storage cleanup)
+  - Status management: Active, Training, Inactive; employee code and metadata
+- Team Directory
+  - Live list of employees with status filters and crisp, initials-only avatars
+- Daily Logs + KPIs
+  - Per-employee daily log capture; latest metrics surfaced on Profile
+- Projects & Tasks
+  - Create tasks with schema validation; employees can only toggle completion
+  - Task attachments stored in Storage at `projects/{projectId}/tasks/{taskId}/attachments/{fileId}`
+- Polls & Surveys
+  - Admin creates polls (single/multi, optional anonymous, expiry-aware)
+  - Responses stored per poll; voters-tracking for anon scenarios; results summary
+- Leaves
+  - Employee can request leaves; admins approve/reject with audit fields
+- Resources & Announcements
+  - Rich, searchable resource library; announcements (latest + history)
+- AI Assistants
+  - Employee AI Resource Chat with local + Firestore sync
+  - Admin Conversational Agent with sessions, message history, and file attachments at `aiChats/{adminId}/sessions/{sessionId}/attachments/{file}`
+- Notifications (per user)
+  - Read/create/update in `notifications/{uid}/items/{nid}`
+- Document Hub
+  - Document metadata with versions; files in Storage at `documents/{docId}/{fileId}`
+- Visitor Analytics
+  - Visitor logs with device details; shown in settings/admin analytics
+- Privacy & Security
+  - Firestore and Storage rules tuned for least privilege
+  - Strict email masking for non-admins (`kr***@*******.**`), initials-only avatars
+  - Super admin bootstrap via `NEXT_PUBLIC_SUPER_ADMIN_EMAIL`
+- Design System & DX
+  - Tailwind semantic tokens, shadcn/ui, dark mode tuned, accessible interactions
+  - Strong linting, type-checking, clear project structure
+
+## 🧭 End-to-End User Journeys
+
+- Employee onboarding (first login)
+  1. Authenticates via Email/Password (Firebase Auth).
+  2. Minimal user doc is auto-bootstrapped if missing (`users/{uid}`) with role and metadata.
+  3. Lands on Dashboard with KPIs, resources, polls, and announcements.
+
+- Employee daily workflow
+  1. Logs daily metrics (connections, follow-ups, emails, leads) from Dashboard/Profile.
+  2. Checks assigned tasks and toggles completion (employees can only update `isCompleted`).
+  3. Uses AI Resource Assistant for scripts, templates, and quick help.
+
+- Admin onboarding
+  1. Marked via `NEXT_PUBLIC_SUPER_ADMIN_EMAIL` on first login.
+  2. Accesses Admin Panel to add/manage employees and roles.
+  3. Configures polls, resources, and project board.
+
+- Admin daily operations
+  1. Reviews team activity, KPIs, and visitor analytics.
+  2. Creates tasks with attachments, manages leaves, posts announcements.
+  3. Uses Admin Conversational Agent (with sessions + file attachments) for productivity.
+
+- Privacy & account lifecycle
+  1. Users can export their data and request account deletion from Settings.
+  2. Admins can revoke sessions, set passwords, or delete users (with optional Storage cleanup).
+
+## 🖼️ Screens & Visuals
+
+<p align="center">
+  <img src="./public/logo-circle.svg" alt="Taliyo Logo" width="72" />
+</p>
+
+<p align="center">
+  <img src="./public/tech-illustrations/coding.svg" height="88" alt="Coding" />
+  <img src="./public/tech-illustrations/cloud-server.svg" height="88" alt="Cloud" />
+  <img src="./public/tech-illustrations/ai-brain.svg" height="88" alt="AI" />
+</p>
+
+<p align="center">
+  <em>Modern, fast, and secure — built on Next.js, Firebase, and thoughtful UX.</em>
+</p>
 
 ## 🧰 Tech Stack
 
