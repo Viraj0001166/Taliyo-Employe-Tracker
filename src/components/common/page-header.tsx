@@ -12,12 +12,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Settings, Search, Bell } from "lucide-react";
+import { LogOut, User, Settings, Search } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { SidebarTrigger } from "../ui/sidebar";
+import { NotificationsBell } from "./notifications-bell";
+import { ThemeToggle } from "./theme-toggle";
 
 interface PageHeaderProps {
   title: string;
@@ -61,10 +63,8 @@ export function PageHeader({ title, user }: PageHeaderProps) {
             className="w-full rounded-lg bg-card pl-8 md:w-[200px] lg:w-[320px] h-9"
           />
         </div>
-        <Button variant="ghost" size="icon" className="h-9 w-9">
-            <Bell className="h-5 w-5" />
-            <span className="sr-only">Toggle notifications</span>
-        </Button>
+        <ThemeToggle />
+        <NotificationsBell />
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="secondary" size="icon" className="rounded-full h-9 w-9">

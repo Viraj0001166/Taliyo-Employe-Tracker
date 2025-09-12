@@ -6,12 +6,14 @@ import dynamic from 'next/dynamic';
 const AssignedTasks = dynamic(() => import('@/components/dashboard/assigned-tasks').then(m => m.AssignedTasks), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading tasks…</div> });
 const DailyTaskForm = dynamic(() => import('@/components/dashboard/daily-task-form').then(m => m.DailyTaskForm), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading form…</div> });
 const WeeklySummary = dynamic(() => import('@/components/dashboard/weekly-summary').then(m => m.WeeklySummary), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading charts…</div> });
+const LeaveRequestWidget = dynamic(() => import('@/components/dashboard/leave-request').then(m => m.LeaveRequestWidget), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading leaves…</div> });
+const PollsWidget = dynamic(() => import('@/components/dashboard/polls-widget').then(m => m.PollsWidget), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading polls…</div> });
 import { Announcements } from "@/components/dashboard/announcements";
 import { auth, db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import type { User as FirebaseUser } from 'firebase/auth';
-import { Loader2, LayoutDashboard, BarChart, ClipboardCheck, Users, BookOpen, LogOut, Briefcase, CalendarClock, MessageSquare } from "lucide-react";
+import { Loader2, LayoutDashboard, BarChart, ClipboardCheck, Users, BookOpen, LogOut, Briefcase, CalendarClock, MessageSquare, CalendarDays } from "lucide-react";
 import { collection, query, where, onSnapshot, doc, getDoc, limit, addDoc, serverTimestamp, orderBy, Timestamp } from "firebase/firestore";
 import type { Employee, AssignedTask, Resource, DailyLog, Announcement, TaskField } from "@/lib/types";
 import { format } from 'date-fns';
@@ -354,6 +356,30 @@ export default function DashboardPage() {
             <Resources resources={resources} />
           </div>
         );
+      case 'polls':
+        return (
+          <div className="p-3 md:p-4">
+            <PollsWidget />
+          </div>
+        );
+      case 'leaves':
+        if (employeeData?.status === 'Training') {
+          return (
+            <div className="p-3 md:p-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Leaves</CardTitle>
+                  <CardDescription>Leave requests are disabled for training users.</CardDescription>
+                </CardHeader>
+              </Card>
+            </div>
+          );
+        }
+        return (
+          <div className="p-3 md:p-4">
+            <LeaveRequestWidget />
+          </div>
+        );
       case 'team':
         return (
           <div className="p-3 md:p-4">
@@ -408,11 +434,25 @@ export default function DashboardPage() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => setActiveTab('polls')} isActive={activeTab === 'polls'}>
+                  <BarChart className="h-5 w-5 mr-3" />
+                  Polls
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
                 <SidebarMenuButton onClick={() => setActiveTab('team')} isActive={activeTab === 'team'}>
                   <Users className="h-5 w-5 mr-3" />
                   Team
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              {employeeData?.status !== 'Training' && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton onClick={() => setActiveTab('leaves')} isActive={activeTab === 'leaves'}>
+                    <CalendarDays className="h-5 w-5 mr-3" />
+                    Leaves
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
               <SidebarMenuItem>
                 <SidebarMenuButton onClick={() => setActiveTab('chatbot')} isActive={activeTab === 'chatbot'}>
                   <MessageSquare className="h-5 w-5 mr-3" />

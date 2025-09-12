@@ -8,7 +8,7 @@ const Leaderboard = dynamic(() => import('@/components/admin/leaderboard').then(
 const RecurringTaskForm = dynamic(() => import('@/components/admin/recurring-task-form').then(m => m.RecurringTaskForm), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading task form…</div> });
 const BroadcastForm = dynamic(() => import('@/components/admin/broadcast-form').then(m => m.BroadcastForm), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading broadcast…</div> });
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Trophy, ClipboardEdit, Loader2, UserPlus, BookCopy, BarChart4, Briefcase, Settings, Sparkles, LineChart, ListChecks } from "lucide-react";
+import { Users, Trophy, ClipboardEdit, Loader2, UserPlus, BookCopy, BarChart4, Briefcase, Settings, Sparkles, LineChart, ListChecks, CalendarDays, Folder } from "lucide-react";
 import { auth, db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
@@ -17,6 +17,10 @@ import { AddUserForm } from "@/components/admin/add-user-form";
 import { collection, onSnapshot, query, where, doc, getDoc } from "firebase/firestore";
 import type { Employee, PerformanceData, Resource } from "@/lib/types";
 const ResourceManager = dynamic(() => import('@/components/admin/resource-manager').then(m => m.ResourceManager), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading resources…</div> });
+const LeaveApprovals = dynamic(() => import('@/components/admin/leave-approvals').then(m => m.LeaveApprovals), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading leaves…</div> });
+const DocumentHub = dynamic(() => import('@/components/admin/document-hub').then(m => m.DocumentHub), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading documents…</div> });
+const PollsManager = dynamic(() => import('@/components/admin/polls-manager').then(m => m.PollsManager), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading polls…</div> });
+const ProjectBoard = dynamic(() => import('@/components/admin/project-board').then(m => m.ProjectBoard), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading projects…</div> });
 const VisitorAnalytics = dynamic(() => import('@/components/admin/visitor-analytics').then(m => m.VisitorAnalytics), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading analytics…</div> });
 const FakeEmployeeManager = dynamic(() => import('@/components/admin/fake-employee-manager').then(m => m.FakeEmployeeManager), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading manager…</div> });
 const AppSettings = dynamic(() => import('@/components/admin/app-settings').then(m => m.AppSettings), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading settings…</div> });
@@ -192,6 +196,14 @@ export default function AdminPage() {
         );
       case "resources":
         return <ResourceManager resources={resources} />;
+      case "leave-approvals":
+        return <LeaveApprovals />;
+      case "documents":
+        return <DocumentHub />;
+      case "polls":
+        return <PollsManager />;
+      case "projects":
+        return <ProjectBoard />;
       case "daily-logs":
         return <DailyLogsManager />;
       case "analytics":
@@ -252,6 +264,30 @@ export default function AdminPage() {
                         <SidebarMenuButton onClick={() => setActiveTab('resources')} isActive={activeTab === 'resources'}>
                             <BookCopy className="h-5 w-5 mr-2" />
                             Resources
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton onClick={() => setActiveTab('polls')} isActive={activeTab === 'polls'}>
+                            <LineChart className="h-5 w-5 mr-2" />
+                            Polls & Surveys
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton onClick={() => setActiveTab('documents')} isActive={activeTab === 'documents'}>
+                            <Folder className="h-5 w-5 mr-2" />
+                            Documents
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton onClick={() => setActiveTab('projects')} isActive={activeTab === 'projects'}>
+                            <Briefcase className="h-5 w-5 mr-2" />
+                            Project Board
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton onClick={() => setActiveTab('leave-approvals')} isActive={activeTab === 'leave-approvals'}>
+                            <CalendarDays className="h-5 w-5 mr-2" />
+                            Leave Approvals
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>

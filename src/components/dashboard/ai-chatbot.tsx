@@ -16,6 +16,8 @@ import { Switch } from "@/components/ui/switch";
 import { db, auth } from '@/lib/firebase';
 import { collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 type Message = {
   id?: string;
@@ -486,7 +488,9 @@ export function AiChatbot() {
                         <div key={pm.id || idx} className="flex items-start gap-2">
                           <div className="rounded-md px-3 py-2 bg-background border shadow-sm text-sm">
                             <span className="mr-2 inline-block rounded-sm bg-primary/10 px-1.5 py-0.5 text-[10px] uppercase text-primary">{pm.role}</span>
-                            {pm.content}
+                            <div className="text-foreground/90">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{pm.content}</ReactMarkdown>
+                            </div>
                           </div>
                           <div className="flex items-center gap-1">
                             <Button aria-label="Move up" title="Move up" variant="ghost" size="icon" className="h-6 w-6" onClick={() => movePin(idx, idx - 1)} disabled={idx === 0}>
@@ -521,7 +525,11 @@ export function AiChatbot() {
                         : "bg-card border"
                     )}
                     >
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    <div className="text-sm">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {message.content}
+                      </ReactMarkdown>
+                    </div>
                     <div className="mt-1 flex items-center justify-end gap-2">
                       <Button
                         variant="ghost"

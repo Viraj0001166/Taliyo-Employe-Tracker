@@ -15,6 +15,8 @@ import { auth, db, storage } from '@/lib/firebase';
 import { collection, addDoc, doc, setDoc, updateDoc, getDocs, orderBy, query, deleteDoc } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { MemoryManager } from '@/components/admin/memory-manager';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 type Attachment = {
     url: string;
@@ -416,7 +418,11 @@ export function ConversationalAgent() {
                                 : "bg-card border"
                             )}
                             >
-                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                            <div className="text-sm">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {message.content}
+                              </ReactMarkdown>
+                            </div>
                             {message.attachments && message.attachments.length > 0 && (
                               <div className={cn("mt-2 space-y-1", message.role === 'user' ? "text-primary-foreground/80" : "text-foreground/80") }>
                                 {message.attachments.map((att, i) => (

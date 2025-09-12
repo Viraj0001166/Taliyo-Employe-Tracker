@@ -113,3 +113,65 @@ export interface GenericApiKey {
     websiteName: string;
     apiKey: string;
 }
+
+// Leave management types
+export interface LeaveRequest {
+  id: string;
+  employeeId: string;
+  type: 'Casual' | 'Sick' | 'Earned' | 'Unpaid';
+  startDate: string; // yyyy-MM-dd
+  endDate: string;   // yyyy-MM-dd
+  reason?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: Timestamp | Date;
+  reviewedBy?: string; // admin uid or email
+  reviewedAt?: Timestamp | Date;
+}
+
+// Document hub file metadata
+export interface DocFile {
+  id: string;
+  title: string;
+  category: string;
+  filePath: string; // storage path
+  uploadedBy: string; // uid
+  uploadedAt: Timestamp | Date;
+  visibility?: 'employees' | 'public';
+}
+
+// Polls & Surveys
+export interface Poll {
+  id: string;
+  question: string;
+  options: string[];
+  active: boolean;
+  createdAt: Timestamp | Date;
+  createdBy: string; // admin uid
+  expiresAt?: Timestamp | Date;
+}
+
+export interface PollResponse {
+  id: string; // uid as id
+  pollId: string;
+  optionIndex: number; // 0-based
+  respondedAt: Timestamp | Date;
+}
+
+// Project Management Board
+export interface ProjectTask {
+  id: string;
+  title: string;
+  description?: string;
+  assigneeId?: string;
+  status: 'todo' | 'in-progress' | 'done';
+  createdAt: Timestamp | Date;
+  createdBy: string; // admin uid
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: Timestamp | Date;
+  createdBy: string;
+}

@@ -8,6 +8,39 @@ service cloud.firestore {
       return request.auth != null && exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
+
+    // Polls & Surveys
+    match /polls/{pollId} {
+        allow read: if request.auth != null;
+        allow create, update: if (isAdmin() || isSuperAdmin()) &&
+                              request.resource.data.question is string &&
+                              request.resource.data.options is list &&
+                              request.resource.data.options.size() >= 2 &&
+                              request.resource.data.active is bool &&
+                              request.resource.data.createdBy is string &&
+                              request.resource.data.createdAt is timestamp;
+        allow delete: if isAdmin() || isSuperAdmin();
+    }
+    match /polls/{pollId}/responses/{uid} {
+        // One response per user; allow create by the owner only
+        allow create: if request.auth != null && uid == request.auth.uid &&
+                      request.resource.data.optionIndex is number &&
+                      request.resource.data.respondedAt is timestamp;
+        // Read own response; admins can read all
+        allow read: if request.auth != null && (uid == request.auth.uid || isAdmin() || isSuperAdmin());
+        // Disallow updates and deletes by non-admins to keep results stable
+        allow update, delete: if isAdmin() || isSuperAdmin();
+    }
+
+    // Projects & Tasks
+    match /projects/{projectId} {
+        allow read: if request.auth != null;
+        allow create, update, delete: if isAdmin() || isSuperAdmin();
+    }
+    match /projects/{projectId}/tasks/{taskId} {
+        allow read: if request.auth != null;
+        allow create, update, delete: if isAdmin() || isSuperAdmin();
+    }
     
     // Helper function for a hardcoded super admin email (bypass when user doc is missing)
     // IMPORTANT: Update the email below to your super admin email.
@@ -149,6 +182,55 @@ service cloud.firestore {
                               request.resource.data.email is string &&
                               (request.resource.data.status == 'Active' || request.resource.data.status == 'Training' || request.resource.data.status == 'Inactive') &&
                               request.resource.data.joinDate is timestamp;
+        allow delete: if isAdmin() || isSuperAdmin();
+    }
+
+    // Notifications per user
+    match /notifications/{uid}/items/{nid} {
+        allow read: if request.auth != null && (request.auth.uid == uid || isAdmin() || isSuperAdmin());
+        allow create: if request.auth != null && (request.auth.uid == uid || isAdmin() || isSuperAdmin());
+        allow update, delete: if request.auth != null && (request.auth.uid == uid || isAdmin() || isSuperAdmin());
+    }
+
+    // Leave requests
+    match /leaves/{leaveId} {
+        // Employee can create own leave requests with limited schema
+        allow create: if request.auth != null &&
+                      request.resource.data.employeeId is string && request.resource.data.employeeId == request.auth.uid &&
+                      (request.resource.data.type in ['Casual','Sick','Earned','Unpaid']) &&
+                      request.resource.data.startDate is string &&
+                      request.resource.data.endDate is string &&
+                      request.resource.data.status == 'pending' &&
+                      request.resource.data.createdAt is timestamp &&
+                      // Disallow Training users from creating leaves
+                      exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+                      get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status != 'Training';
+        // Admins read all; employee can read their own
+        allow read: if isAdmin() || isSuperAdmin() || (resource.data.employeeId == request.auth.uid);
+        // Only admins can approve/reject
+        allow update: if (isAdmin() || isSuperAdmin()) &&
+                      request.resource.data.diff(resource.data).changedKeys().hasOnly(['status','reviewedBy','reviewedAt']) &&
+                      (request.resource.data.status == 'approved' || request.resource.data.status == 'rejected') &&
+                      request.resource.data.reviewedAt is timestamp;
+        allow delete: if isAdmin() || isSuperAdmin();
+    }
+
+    // Document metadata
+    match /documents/{docId} {
+        allow read: if request.auth != null;
+        allow create, update: if (isAdmin() || isSuperAdmin()) &&
+                              request.resource.data.title is string &&
+                              request.resource.data.category is string &&
+                              request.resource.data.filePath is string &&
+                              (!request.resource.data.keys().hasAny(['url']) || request.resource.data.url is string) &&
+                              request.resource.data.uploadedBy is string &&
+                              request.resource.data.uploadedAt is timestamp;
+        allow delete: if isAdmin() || isSuperAdmin();
+    }
+
+    match /documents/{docId}/versions/{verId} {
+        allow read: if request.auth != null;
+        allow create, update: if isAdmin() || isSuperAdmin();
         allow delete: if isAdmin() || isSuperAdmin();
     }
     match /genericApiKeys/{docId} {
