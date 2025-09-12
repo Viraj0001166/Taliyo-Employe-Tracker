@@ -11,7 +11,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Loader2, Shield, User } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import RotatingTech from '@/components/common/rotating-tech';
+import dynamic from 'next/dynamic';
+
+const RotatingTech = dynamic(() => import('@/components/common/rotating-tech'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-full w-full rounded-2xl bg-muted/40 animate-pulse min-h-[200px]" />
+  ),
+});
 
 const SUPER_ADMIN_EMAIL = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || "";
 

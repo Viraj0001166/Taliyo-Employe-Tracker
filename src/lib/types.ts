@@ -104,12 +104,6 @@ export interface TaskField {
   employeeIds?: string[];
 }
 
-export interface AppConfig {
-    id: 'googleSheetWebhookUrl' | 'googleAiApiKey';
-    url?: string;
-    key?: string;
-}
-
 export interface GenericApiKey {
     id: string;
     websiteName: string;

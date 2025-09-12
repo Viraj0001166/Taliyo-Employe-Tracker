@@ -9,11 +9,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from 'zod';
 import { db } from "@/lib/firebase";
-import { doc, setDoc, getDoc, collection, onSnapshot, addDoc, deleteDoc, updateDoc, query, orderBy } from "firebase/firestore";
+import { doc, setDoc, collection, onSnapshot, addDoc, deleteDoc, updateDoc, query, orderBy } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Save, PlusCircle, Trash2, Edit } from "lucide-react";
-import type { AppConfig, TaskField, GenericApiKey, Employee } from "@/lib/types";
+import type { TaskField, GenericApiKey, Employee } from "@/lib/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { Badge } from "../ui/badge";
 import { Separator } from "../ui/separator";
@@ -21,9 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { Info } from "lucide-react";
 
-const webhookFormSchema = z.object({
-  url: z.string().url({ message: "Please enter a valid URL." }),
-});
+// Removed: Google Sheet webhook settings
 
 const taskFieldFormSchema = z.object({
   label: z.string().min(2, { message: "Label must be at least 2 characters." }),
@@ -44,7 +42,6 @@ const maskApiKey = (key: string) => {
 
 export function AppSettings() {
   const { toast } = useToast();
-  const [isSubmittingWebhook, setIsSubmittingWebhook] = useState(false);
   const [isSubmittingField, setIsSubmittingField] = useState(false);
   const [isSubmittingGenericKey, setIsSubmittingGenericKey] = useState(false);
 
@@ -58,10 +55,7 @@ export function AppSettings() {
   const [loadingGenericKeys, setLoadingGenericKeys] = useState(true);
   const [editingGenericKey, setEditingGenericKey] = useState<GenericApiKey | null>(null);
 
-  const webhookForm = useForm<z.infer<typeof webhookFormSchema>>({
-    resolver: zodResolver(webhookFormSchema),
-    defaultValues: { url: "" },
-  });
+  // Removed webhook form
 
   // System (built-in) daily log fields that always appear in the employee form
   // These are rendered read-only in Admin to avoid accidental deletion.
@@ -86,15 +80,6 @@ export function AppSettings() {
   });
 
   useEffect(() => {
-    const fetchSettings = async () => {
-      const webhookDocRef = doc(db, "config", "googleSheetWebhookUrl");
-      const webhookDocSnap = await getDoc(webhookDocRef);
-      if (webhookDocSnap.exists()) {
-        webhookForm.setValue("url", webhookDocSnap.data().url);
-      }
-    };
-    fetchSettings();
-
     const fieldsQuery = query(collection(db, "taskFields"), orderBy('label'));
     const unsubscribeFields = onSnapshot(fieldsQuery, async (snapshot) => {
         const fields = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TaskField));
@@ -163,7 +148,7 @@ export function AppSettings() {
         unsubscribeKeys();
         unsubUsers();
     };
-  }, [webhookForm]);
+  }, []);
 
   useEffect(() => {
     if (editingField) {
@@ -189,18 +174,7 @@ export function AppSettings() {
     }
   }, [editingGenericKey, genericApiKeyForm]);
 
-  const onWebhookSubmit = async (values: z.infer<typeof webhookFormSchema>) => {
-    setIsSubmittingWebhook(true);
-    try {
-      const docRef = doc(db, "config", "googleSheetWebhookUrl");
-      await setDoc(docRef, values);
-      toast({ title: "Settings Saved", description: "Google Sheet webhook URL has been updated." });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
-    } finally {
-      setIsSubmittingWebhook(false);
-    }
-  };
+  // Removed webhook submit handler
 
   const slugifyName = (label: string) => {
     // convert to snake_case: LinkedIn Connections -> linkedin_connections
@@ -333,27 +307,7 @@ export function AppSettings() {
           
           <Separator />
           
-          <Form {...webhookForm}>
-            <form onSubmit={webhookForm.handleSubmit(onWebhookSubmit)} className="space-y-4">
-              <FormField
-                control={webhookForm.control}
-                name="url"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Google Sheet Webhook URL</FormLabel>
-                    <FormControl>
-                      <Input placeholder="https://script.google.com/macros/s/..." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" disabled={isSubmittingWebhook} className="w-full">
-                {isSubmittingWebhook ? <Loader2 className="mr-2 animate-spin" /> : <Save className="mr-2" />}
-                Save Webhook URL
-              </Button>
-            </form>
-          </Form>
+          {/* Google Sheet Webhook URL setting removed */}
         </CardContent>
       </Card>
       

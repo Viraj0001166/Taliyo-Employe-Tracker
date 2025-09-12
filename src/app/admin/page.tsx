@@ -1,10 +1,12 @@
 
 'use client';
 import { PageHeader } from "@/components/common/page-header";
-import { EmployeePerformance } from "@/components/admin/employee-performance";
-import { Leaderboard } from "@/components/admin/leaderboard";
-import { RecurringTaskForm } from "@/components/admin/recurring-task-form";
-import { BroadcastForm } from "@/components/admin/broadcast-form";
+import dynamic from 'next/dynamic';
+// Lazy-load heavy modules
+const EmployeePerformance = dynamic(() => import('@/components/admin/employee-performance').then(m => m.EmployeePerformance), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading users…</div> });
+const Leaderboard = dynamic(() => import('@/components/admin/leaderboard').then(m => m.Leaderboard), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading leaderboard…</div> });
+const RecurringTaskForm = dynamic(() => import('@/components/admin/recurring-task-form').then(m => m.RecurringTaskForm), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading task form…</div> });
+const BroadcastForm = dynamic(() => import('@/components/admin/broadcast-form').then(m => m.BroadcastForm), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading broadcast…</div> });
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Trophy, ClipboardEdit, Loader2, UserPlus, BookCopy, BarChart4, Briefcase, Settings, Sparkles, LineChart, ListChecks } from "lucide-react";
 import { auth, db } from '@/lib/firebase';
@@ -14,15 +16,15 @@ import type { User as FirebaseUser } from 'firebase/auth';
 import { AddUserForm } from "@/components/admin/add-user-form";
 import { collection, onSnapshot, query, where, doc, getDoc } from "firebase/firestore";
 import type { Employee, PerformanceData, Resource } from "@/lib/types";
-import { ResourceManager } from "@/components/admin/resource-manager";
-import { VisitorAnalytics } from "@/components/admin/visitor-analytics";
-import { FakeEmployeeManager } from "@/components/admin/fake-employee-manager";
-import { AppSettings } from "@/components/admin/app-settings";
+const ResourceManager = dynamic(() => import('@/components/admin/resource-manager').then(m => m.ResourceManager), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading resources…</div> });
+const VisitorAnalytics = dynamic(() => import('@/components/admin/visitor-analytics').then(m => m.VisitorAnalytics), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading analytics…</div> });
+const FakeEmployeeManager = dynamic(() => import('@/components/admin/fake-employee-manager').then(m => m.FakeEmployeeManager), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading manager…</div> });
+const AppSettings = dynamic(() => import('@/components/admin/app-settings').then(m => m.AppSettings), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading settings…</div> });
 import { Sidebar, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarProvider, SidebarHeader, SidebarContent, SidebarFooter, SidebarMenuBadge } from "@/components/ui/sidebar";
 import Image from "next/image";
-import { AIPerformanceAnalyzer } from "@/components/admin/ai-performance-analyzer";
-import { ConversationalAgent } from "@/components/admin/conversational-agent";
-import { DailyLogsManager } from "@/components/admin/daily-logs-manager";
+const AIPerformanceAnalyzer = dynamic(() => import('@/components/admin/ai-performance-analyzer').then(m => m.AIPerformanceAnalyzer), { ssr: false });
+const ConversationalAgent = dynamic(() => import('@/components/admin/conversational-agent').then(m => m.ConversationalAgent), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading AI Admin…</div> });
+const DailyLogsManager = dynamic(() => import('@/components/admin/daily-logs-manager').then(m => m.DailyLogsManager), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading logs…</div> });
 
 const SUPER_ADMIN_EMAIL = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || "";
 

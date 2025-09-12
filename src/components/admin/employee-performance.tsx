@@ -6,12 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import type { Employee, DailyLog, TaskField } from "@/lib/types";
-import { AIPerformanceAnalyzer } from "./ai-performance-analyzer";
+import dynamic from 'next/dynamic';
+const AIPerformanceAnalyzer = dynamic(() => import('./ai-performance-analyzer').then(m => m.AIPerformanceAnalyzer), { ssr: false, loading: () => <span className="text-xs text-muted-foreground">AI…</span> });
 import { useEffect, useState } from "react";
 import { collection, query, where, getDocs, orderBy, limit, onSnapshot, doc, updateDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { Button } from "../ui/button";
-import { Edit, Loader2, KeyRound, Eye, EyeOff, Wand2, Copy } from "lucide-react";
+import { Edit, Loader2, KeyRound, Eye, EyeOff, Wand2, Copy, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,13 +22,101 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
+import { Checkbox } from "../ui/checkbox";
 
 interface EmployeePerformanceProps {
   employees: Employee[];
+}
+
+function DeleteUserDialog({ employee, onDeleted }: { employee: Employee; onDeleted: (employeeId: string) => void }) {
+    const [open, setOpen] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [alsoDeleteStorage, setAlsoDeleteStorage] = useState(true);
+    const { toast } = useToast();
+
+    const isSelf = auth.currentUser?.uid === employee.id;
+    const superEmail = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || "";
+    const isSuperAdmin = !!(superEmail && employee.email?.toLowerCase() === superEmail.toLowerCase());
+    const disabled = isSelf || isSuperAdmin;
+
+    const confirmDelete = async () => {
+        setDeleting(true);
+        try {
+            const token = await auth.currentUser?.getIdToken();
+            const res = await fetch('/api/admin/delete-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({ uid: employee.id, deleteStorage: alsoDeleteStorage }),
+            });
+            const data = await res.json();
+            if (!res.ok || !data?.success) throw new Error(data?.error || 'Request failed');
+            toast({ title: 'User Deleted', description: `${employee.name} has been removed.` });
+            setOpen(false);
+            onDeleted(employee.id);
+        } catch (err: any) {
+            console.error(err);
+            toast({ variant: 'destructive', title: 'Deletion failed', description: err?.message || 'Could not delete user.' });
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    return (
+        <AlertDialog open={open} onOpenChange={setOpen}>
+            <AlertDialogTrigger asChild>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Delete User"
+                    disabled={disabled}
+                    title={disabled ? (isSelf ? 'You cannot delete yourself' : 'Cannot delete super admin') : 'Delete user'}
+                >
+                    <Trash2 className="h-4 w-4 text-red-600" />
+                </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Delete {employee.name}?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This action cannot be undone. This will remove the user's account, profile, related logs{alsoDeleteStorage ? ', and storage files' : ''}.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="flex items-center gap-2">
+                    <Checkbox
+                        id={`del-storage-${employee.id}`}
+                        checked={alsoDeleteStorage}
+                        onCheckedChange={(v: boolean | "indeterminate") => setAlsoDeleteStorage(!!v)}
+                    />
+                    <Label htmlFor={`del-storage-${employee.id}`}>Also delete storage files</Label>
+                </div>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={confirmDelete} disabled={deleting}>
+                        {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Delete
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
 }
 
 function SetPasswordDialog({ employee }: { employee: Employee }) {
@@ -320,6 +409,7 @@ export function EmployeePerformance({ employees: initialEmployees }: EmployeePer
                            <AIPerformanceAnalyzer employee={employee} />
                            <SetPasswordDialog employee={employee} />
                            <EditUserRoleDialog employee={employee} onRoleChange={handleRoleChange} />
+                           <DeleteUserDialog employee={employee} onDeleted={(id) => setEmployees(prev => prev.filter(e => e.id === id ? false : true))} />
                         </div>
                     </TableCell>
                 </TableRow>

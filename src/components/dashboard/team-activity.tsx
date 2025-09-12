@@ -1,11 +1,10 @@
-
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { FakeEmployee } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
@@ -29,7 +28,7 @@ export function TeamActivity() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(collection(db, 'fakeEmployees'), orderBy('joinDate', 'desc'));
+    const q = query(collection(db, 'fakeEmployees'), orderBy('joinDate', 'desc'), limit(25));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const employeeList = snapshot.docs.map(doc => ({
         id: doc.id,

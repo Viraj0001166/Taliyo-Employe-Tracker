@@ -17,8 +17,8 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2, Pencil, Trash2, Filter } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, orderBy, query, where, doc, updateDoc, deleteDoc, getDocs } from "firebase/firestore";
-import type { DailyLog, Employee } from "@/lib/types";
+import { collection, onSnapshot, orderBy, query, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import type { DailyLog, Employee, TaskField } from "@/lib/types";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
@@ -29,6 +29,8 @@ export function DailyLogsManager() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingInline, setSavingInline] = useState(false);
+  const [taskFields, setTaskFields] = useState<TaskField[]>([]);
+  const [fieldsLoading, setFieldsLoading] = useState(true);
 
   // Filters
   const [employeeFilter, setEmployeeFilter] = useState<string>("");
@@ -54,19 +56,21 @@ export function DailyLogsManager() {
   const [bulkStatus, setBulkStatus] = useState("");
 
   // Inline editing state
-  const [editingCell, setEditingCell] = useState<{ id: string; field: keyof DailyLog } | null>(null);
+  const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null);
   const [editingValue, setEditingValue] = useState<string>("");
 
   // Inline edit helpers
-  const numericFields = new Set([
+  const dynamicFieldNames = useMemo(() => taskFields.map(f => f.name), [taskFields]);
+  const numericFieldNames = useMemo(() => new Set<string>([
     "connectionsSent",
     "accepted",
     "messagesSent",
     "replies",
     "interestedLeads",
-  ] as Array<keyof DailyLog> as any);
+    ...dynamicFieldNames,
+  ]), [dynamicFieldNames]);
 
-  const startInline = (id: string, field: keyof DailyLog, current: any) => {
+  const startInline = (id: string, field: string, current: any) => {
     setEditingCell({ id, field });
     setEditingValue(String(current ?? ""));
   };
@@ -100,8 +104,22 @@ export function DailyLogsManager() {
 
   }, []);
 
+  // Subscribe to taskFields for dynamic columns
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'taskFields'), (snapshot) => {
+      const fields = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) })) as TaskField[];
+      setTaskFields(fields);
+      setFieldsLoading(false);
+    }, (error) => {
+      console.error('taskFields subscribe', error);
+      setTaskFields([]);
+      setFieldsLoading(false);
+    });
+    return () => unsub();
+  }, []);
+
   // Revert helper for inline undo
-  const revertInline = async (id: string, field: keyof DailyLog, prevValue: any) => {
+  const revertInline = async (id: string, field: string, prevValue: any) => {
     try {
       await updateDoc(doc(db, "dailyLogs", id), { [field]: prevValue });
       setLogs((prev) => prev.map((l) => (l.id === id ? ({ ...l, [field]: prevValue } as any) : l)) as DailyLog[]);
@@ -116,7 +134,7 @@ export function DailyLogsManager() {
     if (!editingCell) return;
     const { id, field } = editingCell;
     // Validate inputs
-    if (numericFields.has(field as any)) {
+    if (numericFieldNames.has(field)) {
       const n = Number(editingValue);
       if (isNaN(n) || n < 0) {
         toast({ variant: 'destructive', title: 'Invalid number', description: 'Please enter a non-negative number.' });
@@ -129,7 +147,7 @@ export function DailyLogsManager() {
         return;
       }
     }
-    const value: any = (numericFields.has(field as any) ? Number(editingValue || 0) : editingValue);
+    const value: any = (numericFieldNames.has(field) ? Number(editingValue || 0) : editingValue);
     setSavingInline(true);
     try {
       // snapshot previous value for undo
@@ -461,6 +479,10 @@ export function DailyLogsManager() {
                 <th className="text-right p-2 cursor-pointer" onClick={() => toggleSort('replies')}>Replies {sortBy==='replies' ? (sortDir==='asc'?'▲':'▼') : ''}</th>
                 <th className="text-right p-2 cursor-pointer" onClick={() => toggleSort('interestedLeads')}>Interested {sortBy==='interestedLeads' ? (sortDir==='asc'?'▲':'▼') : ''}</th>
                 <th className="text-left p-2 cursor-pointer" onClick={() => toggleSort('status')}>Status {sortBy==='status' ? (sortDir==='asc'?'▲':'▼') : ''}</th>
+                {/* Dynamic fields as columns */}
+                {taskFields.map((f) => (
+                  <th key={f.id} className="text-right p-2">{f.label}</th>
+                ))}
                 <th className="text-left p-2">Sheet</th>
                 <th className="text-right p-2">Actions</th>
               </tr>
@@ -510,6 +532,14 @@ export function DailyLogsManager() {
                         <Input autoFocus className="h-7" value={editingValue} onChange={(e) => setEditingValue(e.target.value)} onBlur={commitInline} onKeyDown={(e) => { if (e.key === 'Enter') commitInline(); if (e.key === 'Escape') cancelInline(); }} />
                       ) : ((l.status as any) || "")}
                     </td>
+                    {/* Dynamic metric columns with inline numeric editing */}
+                    {taskFields.map((f) => (
+                      <td key={f.id} className="p-2 text-right" onDoubleClick={() => startInline(l.id, f.name, (l as any)[f.name])}>
+                        {editingCell?.id === l.id && editingCell?.field === f.name ? (
+                          <Input autoFocus className="h-7 text-right" value={editingValue} onChange={(e) => setEditingValue(e.target.value)} onBlur={commitInline} onKeyDown={(e) => { if (e.key === 'Enter') commitInline(); if (e.key === 'Escape') cancelInline(); }} />
+                        ) : Number((l as any)[f.name] ?? 0)}
+                      </td>
+                    ))}
                     {/* Inline editable sheet link */}
                     <td className="p-2" onDoubleClick={() => startInline(l.id, "sheetLink", l.sheetLink)}>
                       {editingCell?.id === l.id && editingCell?.field === "sheetLink" ? (

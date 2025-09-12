@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { collection, onSnapshot, orderBy, query, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { VisitorLog } from '@/lib/types';
 import { format } from 'date-fns';
@@ -17,7 +17,7 @@ export function VisitorAnalytics() {
 
   useEffect(() => {
     const logsCollection = collection(db, "visitorLogs");
-    const q = query(logsCollection, orderBy("loginTime", "desc"));
+    const q = query(logsCollection, orderBy("loginTime", "desc"), limit(200));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VisitorLog));

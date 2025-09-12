@@ -1,9 +1,11 @@
 
 'use client';
 import { PageHeader } from "@/components/common/page-header";
-import { AssignedTasks } from "@/components/dashboard/assigned-tasks";
-import { DailyTaskForm } from "@/components/dashboard/daily-task-form";
-import { WeeklySummary } from "@/components/dashboard/weekly-summary";
+import dynamic from 'next/dynamic';
+// Lazy-load heavier widgets
+const AssignedTasks = dynamic(() => import('@/components/dashboard/assigned-tasks').then(m => m.AssignedTasks), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading tasks…</div> });
+const DailyTaskForm = dynamic(() => import('@/components/dashboard/daily-task-form').then(m => m.DailyTaskForm), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading form…</div> });
+const WeeklySummary = dynamic(() => import('@/components/dashboard/weekly-summary').then(m => m.WeeklySummary), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading charts…</div> });
 import { Announcements } from "@/components/dashboard/announcements";
 import { auth, db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
@@ -13,16 +15,16 @@ import { Loader2, LayoutDashboard, BarChart, ClipboardCheck, Users, BookOpen, Lo
 import { collection, query, where, onSnapshot, doc, getDoc, limit, addDoc, serverTimestamp, orderBy, Timestamp } from "firebase/firestore";
 import type { Employee, AssignedTask, Resource, DailyLog, Announcement, TaskField } from "@/lib/types";
 import { format } from 'date-fns';
-import { TeamActivity } from "@/components/dashboard/team-activity";
-import { AiChatbot } from "@/components/dashboard/ai-chatbot";
+const TeamActivity = dynamic(() => import('@/components/dashboard/team-activity').then(m => m.TeamActivity), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading team activity…</div> });
+const AiChatbot = dynamic(() => import('@/components/dashboard/ai-chatbot').then(m => m.AiChatbot), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Starting AI assistant…</div> });
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarProvider } from "@/components/ui/sidebar";
 import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { TeamDirectory } from "@/components/dashboard/team-directory";
+const TeamDirectory = dynamic(() => import('@/components/dashboard/team-directory').then(m => m.TeamDirectory), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading directory…</div> });
 import { signOut } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
-import { Resources } from "@/components/dashboard/resources";
+const Resources = dynamic(() => import('@/components/dashboard/resources').then(m => m.Resources), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading resources…</div> });
 
 function WelcomeCard({ name }: { name: string }) {
   const firstName = name ? name.split(' ')[0] : '';

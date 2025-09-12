@@ -1,8 +1,8 @@
 import type {Metadata} from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import { Toaster } from "@/components/ui/toaster"
 import { cn } from '@/lib/utils';
+import ToasterLazy from '@/components/common/toaster-lazy';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -29,11 +29,7 @@ export default function RootLayout({
     <html lang="en" className={cn("h-full", inter.variable)} suppressHydrationWarning>
       <body className="font-body antialiased h-full">
         {children}      
-        <footer className="w-full text-center text-gray-400 text-sm py-6">
-          <div>Developed by Taliyo Technologies</div>
-          <div id="developer-name">Made by Viraj Srivastav</div>
-        </footer>
-        <Toaster />
+        <ToasterLazy />
       </body>
     </html>
   );

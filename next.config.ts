@@ -2,15 +2,30 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // General performance toggles
+  reactStrictMode: true,
+  compress: true,
+  productionBrowserSourceMaps: false,
+  poweredByHeader: false,
+
+  compiler: {
+    // Strip console.* in production builds to reduce bundle size
+    removeConsole: { exclude: ['error', 'warn'] },
+  },
+
+  // Keep build unblocked by lint/ts errors (adjust to your preference)
   typescript: {
     ignoreBuildErrors: true,
   },
   eslint: {
     ignoreDuringBuilds: true,
   },
+
+  // Optimize image handling and allow our SVG illustrations
   images: {
     dangerouslyAllowSVG: true,
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 3600,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     remotePatterns: [
       {
@@ -38,6 +53,40 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+  },
+
+  // Reduce bundle size by transforming named icon imports
+  // modularizeImports removed temporarily to avoid path mismatches during build.
+  // If needed, reintroduce with kebab-case transform after a clean rebuild.
+
+  // Set long-term cache headers for static assets from /public
+  async headers() {
+    return [
+      {
+        source: '/tech-illustrations/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      {
+        source: '/logo-:path*.svg',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      {
+        source: '/icon.svg',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      {
+        source: '/favicon.ico',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+    ];
   },
 };
 

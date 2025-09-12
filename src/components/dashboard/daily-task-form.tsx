@@ -9,10 +9,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { Send, Loader2 } from "lucide-react"
 import { useState, useEffect, useMemo } from "react"
-import { collection, addDoc, onSnapshot, doc, getDoc, serverTimestamp } from 'firebase/firestore'
-import { db, auth } from '@/lib/firebase'
+import { collection, addDoc, onSnapshot, serverTimestamp, updateDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import { format } from "date-fns"
-import type { TaskField, AppConfig, Employee } from "@/lib/types"
+import type { TaskField } from "@/lib/types"
 import { Skeleton } from "../ui/skeleton"
 
 interface DailyTaskFormProps {
@@ -73,7 +73,6 @@ export function DailyTaskForm({ employeeId }: DailyTaskFormProps) {
     const replies = Number(formData.get('replies')) || 0;
     const interestedLeads = Number(formData.get('interestedLeads')) || 0;
     const status = (formData.get('status') as string) || '';
-    const sheetLink = (formData.get('sheetLink') as string) || '';
     
     const currentForm = event.currentTarget;
 
@@ -87,62 +86,25 @@ export function DailyTaskForm({ employeeId }: DailyTaskFormProps) {
         replies,
         interestedLeads,
         status,
-        sheetLink,
         ...formValues,
     };
 
     try {
         // 1. Save to Firestore
-        await addDoc(collection(db, 'dailyLogs'), {
+        const docRef = await addDoc(collection(db, 'dailyLogs'), {
             ...fullLogData,
             timestamp: serverTimestamp(),
         });
+        // Store back the generated ID for easier correlation
+        try { await updateDoc(docRef, { id: docRef.id }); } catch {}
 
-        // 2. Send to Google Sheet Webhook
-        const configDocRef = doc(db, 'config', 'googleSheetWebhookUrl');
-        const configDocSnap = await getDoc(configDocRef);
-        
-        if (configDocSnap.exists()) {
-            const config = configDocSnap.data() as AppConfig;
-            const userDoc = await getDoc(doc(db, 'users', employeeId));
-            const employeeName = userDoc.exists() ? (userDoc.data() as Employee).name : 'Unknown';
-            const employeeEmail = auth.currentUser?.email || 'Unknown';
-
-            const webhookUrl = typeof config.url === 'string' ? config.url.trim() : '';
-            if (webhookUrl) {
-              await fetch(webhookUrl, {
-                  method: 'POST',
-                  mode: 'no-cors',
-                  headers: {
-                      'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                      ...fullLogData,
-                      employeeName: employeeName,
-                      employeeEmail: employeeEmail,
-                  }),
-              });
-            } else {
-              // Warn if webhook URL is not configured
-              toast({
-                title: 'Webhook Not Configured',
-                description: 'Ask your admin to set the Google Sheet webhook URL in Settings.',
-              });
-            }
-        }
+        // 2. Removed: Google Sheets webhook integration
 
         // 3. Show confirmation toast
         toast({
             title: "Log Submitted!",
             description: "Your daily performance has been recorded successfully.",
         });
-
-        // 3b. Remember sheet link for convenience
-        try {
-          if (sheetLink && typeof window !== 'undefined') {
-            window.localStorage.setItem('daily_sheet_link', sheetLink);
-          }
-        } catch {}
 
         // 4. Ask AI for a simple improvement suggestion based on recent logs
         try {
@@ -242,19 +204,6 @@ export function DailyTaskForm({ employeeId }: DailyTaskFormProps) {
                     ))}
                 </div>
             )}
-
-          {/* Google Sheet link tip */}
-          <div className="space-y-2 pt-2">
-            <Label htmlFor="sheetLink">Tip</Label>
-            <p className="text-xs text-muted-foreground">Maintain a Google Sheet and update daily. Add your company sheet link here.</p>
-            <Input
-              id="sheetLink"
-              name="sheetLink"
-              type="url"
-              placeholder="https://docs.google.com/spreadsheets/d/…"
-              defaultValue={typeof window !== 'undefined' ? window.localStorage.getItem('daily_sheet_link') || '' : ''}
-            />
-          </div>
 
           <div className="space-y-2 pt-4">
             <Label htmlFor="notes">Notes</Label>
