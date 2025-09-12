@@ -112,7 +112,22 @@ export function AddUserForm({ onUserAdded }: AddUserFormProps) {
 
       // Use secondary auth to avoid replacing the current admin session
       const secondaryAuth = getSecondaryAuth();
-      const userCredential = await createUserWithEmailAndPassword(secondaryAuth, values.email, values.password);
+      // Derive a 9-character password from name, title, and joining date if empty
+      let passwordToUse = values.password;
+      if (!passwordToUse) {
+        const lettersOnly = (s: string) => (s || '').replace(/[^A-Za-z]/g, '');
+        const firstN = (s: string, n: number, padChar = 'x') => {
+          const t = (s || '').slice(0, n);
+          return t.length < n ? t.padEnd(n, padChar) : t;
+        };
+        const namePart = firstN(lettersOnly(values.fullName || ''), 3).toLowerCase();
+        const posPart = firstN(lettersOnly(values.title || ''), 3).toUpperCase();
+        const digits = (values.joiningDate || '').replace(/[^0-9]/g, ''); // YYYYMMDD
+        const yymmdd = digits.length >= 8 ? digits.slice(2) : digits; // prefer YYMMDD
+        const datePart = (yymmdd.slice(-3) || '').padStart(3, '0');
+        passwordToUse = `${namePart}${posPart}${datePart}`.slice(0, 9);
+      }
+      const userCredential = await createUserWithEmailAndPassword(secondaryAuth, values.email, passwordToUse);
       
       const user = userCredential.user;
       const displayName = values.fullName.trim();
@@ -205,20 +220,23 @@ export function AddUserForm({ onUserAdded }: AddUserFormProps) {
   }
 
   const generatePassword = () => {
-    const length = 12;
-    const uppers = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-    const lowers = 'abcdefghijkmnopqrstuvwxyz';
-    const numbers = '23456789';
-    const specials = '!@#$%^&*()_-+=[]{}';
-    const all = uppers + lowers + numbers + specials;
-    const pick = (set: string) => set[Math.floor(Math.random() * set.length)];
-    let pass = pick(uppers) + pick(lowers) + pick(numbers) + pick(specials);
-    for (let i = pass.length; i < length; i++) pass += pick(all);
-    // shuffle
-    pass = pass.split('').sort(() => (Math.random() - 0.5)).join('');
+    const lettersOnly = (s: string) => (s || '').replace(/[^A-Za-z]/g, '');
+    const firstN = (s: string, n: number, padChar = 'x') => {
+      const t = (s || '').slice(0, n);
+      return t.length < n ? t.padEnd(n, padChar) : t;
+    };
+    const fullName = (form.getValues('fullName') || '').trim();
+    const title = (form.getValues('title') || '').trim();
+    const joiningDate = (form.getValues('joiningDate') || '').trim();
+    const namePart = firstN(lettersOnly(fullName), 3).toLowerCase();
+    const posPart = firstN(lettersOnly(title), 3).toUpperCase();
+    const digits = joiningDate.replace(/[^0-9]/g, ''); // YYYYMMDD
+    const yymmdd = digits.length >= 8 ? digits.slice(2) : digits; // prefer YYMMDD
+    const datePart = (yymmdd.slice(-3) || '').padStart(3, '0');
+    const pass = `${namePart}${posPart}${datePart}`.slice(0, 9);
     form.setValue('password', pass, { shouldDirty: true });
     setShowPassword(true);
-    toast({ title: 'Password generated', description: 'A strong password was generated.' });
+    toast({ title: 'Password generated', description: 'Generated from name, position, and joining date (9 chars).' });
   };
 
   const copyPassword = async () => {
