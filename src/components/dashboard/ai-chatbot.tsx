@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Sparkles, Send, Bot, User, Loader2, Trash2, Download, CloudUpload, Pin as PinIcon, PinOff, FileText, ChevronUp, ChevronDown, MoreHorizontal } from "lucide-react";
 import { resourceChat } from '@/ai/flows/resource-chat-flow';
 import { cn } from '@/lib/utils';

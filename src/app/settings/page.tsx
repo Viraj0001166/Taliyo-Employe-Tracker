@@ -7,20 +7,33 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { auth, db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { User as FirebaseUser } from 'firebase/auth';
-import { ArrowLeft, Loader2 } from "lucide-react";
-import { doc, getDoc } from 'firebase/firestore';
+import { ArrowLeft, Loader2, Mail, BookOpen, AlertCircle, Smartphone, LogOut, Download, Shield, UserX } from "lucide-react";
+import { collection, doc, getDoc, query, where, orderBy, limit, getDocs, addDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { signOut } from "firebase/auth";
+import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [issueOpen, setIssueOpen] = useState(false);
+  const [issueMessage, setIssueMessage] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [lastDevice, setLastDevice] = useState<string | null>(null);
+  const [lastLoginAt, setLastLoginAt] = useState<string | null>(null);
+  const [busyRevoke, setBusyRevoke] = useState(false);
+  const [busyExport, setBusyExport] = useState(false);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
@@ -33,10 +46,33 @@ export default function SettingsPage() {
            if (userDocSnap.data().role === 'admin') {
             setIsAdmin(true);
            }
+           // Fetch last login device from visitorLogs
+           try {
+             const q = query(
+               collection(db, 'visitorLogs'),
+               where('employeeId', '==', currentUser.uid),
+               orderBy('loginTime', 'desc'),
+               limit(1)
+             );
+             const snap = await getDocs(q);
+             if (!snap.empty) {
+               const d: any = snap.docs[0].data();
+               setLastDevice(d.userAgent || null);
+               setLastLoginAt(d.loginTime?.toDate ? d.loginTime.toDate().toLocaleString() : null);
+             }
+           } catch {}
         } else {
-          // If no user doc, they shouldn't be here
-          await signOut(auth);
-          router.push('/');
+          // Bootstrap a minimal user doc so settings can load without logging out
+          const superAdminEmail = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || '';
+          const role = currentUser.email && superAdminEmail && currentUser.email.toLowerCase() === superAdminEmail.toLowerCase() ? 'admin' : 'employee';
+          const bootstrap = {
+            name: currentUser.displayName || (currentUser.email || '').split('@')[0] || 'User',
+            email: currentUser.email || '',
+            role,
+            createdAt: serverTimestamp(),
+          } as any;
+          await setDoc(userDocRef, bootstrap, { merge: true });
+          if (role === 'admin') setIsAdmin(true);
         }
       } else {
         router.push('/');
@@ -63,6 +99,85 @@ export default function SettingsPage() {
   };
 
   const dashboardPath = isAdmin ? '/admin' : '/dashboard';
+  const KB_URL = process.env.NEXT_PUBLIC_KB_URL || 'https://example.com/kb';
+  const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'hr@example.com';
+
+  async function submitIssue() {
+    if (!user) return;
+    const msg = issueMessage.trim();
+    if (!msg) { toast({ variant: 'destructive', title: 'Please describe the issue' }); return; }
+    try {
+      await addDoc(collection(db, 'issueReports'), {
+        userId: user.uid,
+        message: msg,
+        status: 'open',
+        createdAt: serverTimestamp(),
+      });
+      setIssueMessage("");
+      setIssueOpen(false);
+      toast({ title: 'Issue reported', description: 'We will review and respond.' });
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Failed to submit', description: e?.message || 'Try again later' });
+    }
+  }
+
+  async function revokeAllSessions() {
+    if (!user) return;
+    setBusyRevoke(true);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch('/api/user/revoke-sessions', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error('Request failed');
+      toast({ title: 'All sessions revoked', description: 'You will be signed out on all devices.' });
+      await signOut(auth);
+      router.push('/');
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Failed to revoke', description: e?.message || 'Try again later' });
+    } finally {
+      setBusyRevoke(false);
+    }
+  }
+
+  async function downloadMyData() {
+    if (!user) return;
+    setBusyExport(true);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch('/api/user/export-data', { method: 'GET', headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `my-data-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Export failed', description: e?.message || 'Try again later' });
+    } finally {
+      setBusyExport(false);
+    }
+  }
+
+  async function requestAccountDeletion() {
+    if (!user) return;
+    const reason = deleteReason.trim();
+    try {
+      await addDoc(collection(db, 'accountDeletionRequests'), {
+        userId: user.uid,
+        reason: reason || null,
+        status: 'pending',
+        createdAt: serverTimestamp(),
+      });
+      setDeleteReason("");
+      setDeleteOpen(false);
+      toast({ title: 'Request sent', description: 'An admin will review your request.' });
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Failed to send request', description: e?.message || 'Try again later' });
+    }
+  }
 
   return (
     <SidebarProvider>
@@ -105,11 +220,80 @@ export default function SettingsPage() {
                 </Card>
                 <Card>
                     <CardHeader>
-                        <CardTitle>Danger Zone</CardTitle>
-                        <CardDescription>These actions are irreversible. Please proceed with caution.</CardDescription>
+                        <CardTitle>Support & Help</CardTitle>
+                        <CardDescription>Get help or send feedback to Admin/HR.</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <Button variant="destructive" disabled>Delete Account</Button>
+                    <CardContent className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+                        <Button asChild variant="secondary" className="w-full">
+                          <a href={`mailto:${SUPPORT_EMAIL}?subject=Support%20Request`}>
+                            <Mail className="h-4 w-4 mr-2"/> Contact Admin / HR
+                          </a>
+                        </Button>
+                        <Button asChild variant="outline" className="w-full">
+                          <a href={KB_URL} target="_blank" rel="noreferrer">
+                            <BookOpen className="h-4 w-4 mr-2"/> Knowledge Base / FAQs
+                          </a>
+                        </Button>
+                        <Dialog open={issueOpen} onOpenChange={setIssueOpen}>
+                          <DialogTrigger asChild>
+                            <Button variant="default" className="w-full"><AlertCircle className="h-4 w-4 mr-2"/> Report Issue</Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Report an Issue</DialogTitle>
+                              <DialogDescription>Describe the problem you are facing.</DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-2">
+                              <Label htmlFor="issue-msg">Message</Label>
+                              <Textarea id="issue-msg" rows={4} value={issueMessage} onChange={(e) => setIssueMessage(e.target.value)} placeholder="What went wrong?"/>
+                            </div>
+                            <DialogFooter>
+                              <Button onClick={submitIssue}>Submit</Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Privacy & Security</CardTitle>
+                        <CardDescription>Manage your sessions and data.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="space-y-1">
+                          <div className="font-medium flex items-center"><Smartphone className="h-4 w-4 mr-2"/> Last login device</div>
+                          <div className="text-sm text-muted-foreground break-words break-all">{lastDevice || '—'}</div>
+                          <div className="text-xs text-muted-foreground">{lastLoginAt ? `Last login: ${lastLoginAt}` : ''}</div>
+                          <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                            <Button className="w-full sm:w-auto" variant="outline" onClick={async () => { await signOut(auth); router.push('/'); }}><LogOut className="h-4 w-4 mr-2"/> Logout current device</Button>
+                            <Button className="w-full sm:w-auto" variant="destructive" onClick={revokeAllSessions} disabled={busyRevoke}>{busyRevoke && <Loader2 className="h-4 w-4 animate-spin mr-2"/>}Logout from all sessions</Button>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="font-medium flex items-center"><Shield className="h-4 w-4 mr-2"/> Your data</div>
+                          <Button className="w-full sm:w-auto" variant="secondary" onClick={downloadMyData} disabled={busyExport}><Download className="h-4 w-4 mr-2"/> Download my data</Button>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="font-medium flex items-center"><UserX className="h-4 w-4 mr-2"/> Delete Account</div>
+                          <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+                            <DialogTrigger asChild>
+                              <Button className="w-full sm:w-auto" variant="destructive">Request account deletion</Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Request account deletion</DialogTitle>
+                                <DialogDescription>Submit a request. An admin must approve this action.</DialogDescription>
+                              </DialogHeader>
+                              <div className="space-y-2">
+                                <Label htmlFor="del-reason">Reason (optional)</Label>
+                                <Textarea id="del-reason" rows={3} value={deleteReason} onChange={(e) => setDeleteReason(e.target.value)} placeholder="Tell us why you want to delete your account" />
+                              </div>
+                              <DialogFooter>
+                                <Button variant="destructive" onClick={requestAccountDeletion}>Submit request</Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
                     </CardContent>
                 </Card>
             </div>

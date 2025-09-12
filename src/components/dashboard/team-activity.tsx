@@ -4,8 +4,8 @@ import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { collection, onSnapshot, query, orderBy, limit, doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
 import type { FakeEmployee } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -23,11 +23,33 @@ const getStatusVariant = (status: FakeEmployee['status']): "default" | "secondar
     }
 };
 
+const maskEmail = (email?: string) => {
+  if (!email) return '';
+  const [user] = email.split('@');
+  if (!user) return '***@*******.**';
+  const prefix = user.length <= 2 ? (user[0] || '') : user.slice(0, 2);
+  return `${prefix}***@*******.**`;
+};
+
 export function TeamActivity() {
   const [employees, setEmployees] = useState<FakeEmployee[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    // Determine if current viewer is admin (controls masking)
+    const unsubAuth = auth.onAuthStateChanged(async (u) => {
+      try {
+        if (u) {
+          const snap = await getDoc(doc(db, 'users', u.uid));
+          const role = snap.exists() ? (snap.data() as any)?.role : undefined;
+          setIsAdmin(role === 'admin');
+        } else {
+          setIsAdmin(false);
+        }
+      } catch { setIsAdmin(false); }
+    });
+
     const q = query(collection(db, 'fakeEmployees'), orderBy('joinDate', 'desc'), limit(25));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const employeeList = snapshot.docs.map(doc => ({
@@ -41,7 +63,7 @@ export function TeamActivity() {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => { unsubscribe(); unsubAuth(); };
   }, []);
   
   if (loading) {
@@ -83,7 +105,7 @@ export function TeamActivity() {
                               </Avatar>
                               <div>
                                   <p className="font-medium">{employee.name}</p>
-                                  <p className="text-sm text-muted-foreground">{employee.email}</p>
+                                  <p className="text-sm text-muted-foreground">{isAdmin ? employee.email : maskEmail(employee.email)}</p>
                               </div>
                           </div>
                       </TableCell>

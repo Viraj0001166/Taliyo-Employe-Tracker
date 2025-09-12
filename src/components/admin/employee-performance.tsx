@@ -3,7 +3,7 @@
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import type { Employee, DailyLog, TaskField } from "@/lib/types";
 import dynamic from 'next/dynamic';
@@ -551,7 +551,6 @@ export function EmployeePerformance({ employees: initialEmployees }: EmployeePer
                     <TableCell>
                     <div className="flex items-center gap-3 min-w-[200px]">
                         <Avatar>
-                          {employee.avatar ? <AvatarImage src={employee.avatar} alt={employee.name} /> : null}
                           <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                             {(employee.name?.trim()?.charAt(0) || 'U').toUpperCase()}
                           </AvatarFallback>

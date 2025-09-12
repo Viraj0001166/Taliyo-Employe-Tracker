@@ -68,10 +68,10 @@ export function WeeklySummary({ data }: WeeklySummaryProps) {
 
   const getStatusChipClasses = (label: string) => {
     const l = label.toLowerCase();
-    if (/(hire|selected|accepted|joined)/.test(l)) return "bg-emerald-50 text-emerald-700 border-emerald-200";
-    if (/(progress|follow|ongoing|pending)/.test(l)) return "bg-amber-50 text-amber-700 border-amber-200";
-    if (/(reject|decline|not|drop)/.test(l)) return "bg-rose-50 text-rose-700 border-rose-200";
-    if (/(active|new|interested)/.test(l)) return "bg-sky-50 text-sky-700 border-sky-200";
+    if (/(hire|selected|accepted|joined)/.test(l)) return "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800";
+    if (/(progress|follow|ongoing|pending)/.test(l)) return "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800";
+    if (/(reject|decline|not|drop)/.test(l)) return "bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800";
+    if (/(active|new|interested)/.test(l)) return "bg-sky-50 dark:bg-sky-900/20 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800";
     return "bg-muted text-foreground border-border/50";
   };
 

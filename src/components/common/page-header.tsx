@@ -2,7 +2,8 @@
 "use client";
 
 import Link from "next/link";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useEffect, useState } from "react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,13 +14,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LogOut, User, Settings, Search } from "lucide-react";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { SidebarTrigger } from "../ui/sidebar";
 import { NotificationsBell } from "./notifications-bell";
 import { ThemeToggle } from "./theme-toggle";
+import { doc, onSnapshot } from "firebase/firestore";
 
 interface PageHeaderProps {
   title: string;
@@ -33,6 +35,7 @@ interface PageHeaderProps {
 export function PageHeader({ title, user }: PageHeaderProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const [headerUser, setHeaderUser] = useState(user);
 
   const handleLogout = async () => {
     try {
@@ -52,6 +55,37 @@ export function PageHeader({ title, user }: PageHeaderProps) {
     }
   };
 
+  useEffect(() => {
+    let unsubDoc: undefined | (() => void);
+    const unsubAuth = auth.onAuthStateChanged(async (u) => {
+      try {
+        if (u) {
+          // Seed from Auth
+          setHeaderUser((prev) => ({
+            name: u.displayName || prev.name,
+            email: u.email || prev.email,
+            avatar: u.photoURL || prev.avatar,
+          }));
+          // Live subscribe to Firestore user doc for avatar/name updates
+          try {
+            const ref = doc(db, 'users', u.uid);
+            unsubDoc = onSnapshot(ref, (snap) => {
+              if (snap.exists()) {
+                const data = snap.data() as any;
+                setHeaderUser((prev) => ({
+                  name: (data.name as string) || prev.name,
+                  email: (data.email as string) || prev.email,
+                  avatar: (data.avatar as string) || prev.avatar,
+                }));
+              }
+            });
+          } catch {}
+        }
+      } catch {}
+    });
+    return () => { unsubAuth(); if (unsubDoc) unsubDoc(); };
+  }, [user.name, user.email, user.avatar]);
+
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/80 backdrop-blur-lg px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
        <SidebarTrigger className="md:hidden"/>
@@ -69,17 +103,16 @@ export function PageHeader({ title, user }: PageHeaderProps) {
             <DropdownMenuTrigger asChild>
               <Button variant="secondary" size="icon" className="rounded-full h-9 w-9">
                 <Avatar className="h-9 w-9">
-                  {user.avatar ? <AvatarImage src={user.avatar} alt={user.name} /> : null}
-                  <AvatarFallback>{(user.name?.trim()?.charAt(0) || 'U').toUpperCase()}</AvatarFallback>
+                  <AvatarFallback>{(headerUser.name?.trim()?.charAt(0) || 'U').toUpperCase()}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{user.name}</p>
+                  <p className="text-sm font-medium leading-none">{headerUser.name}</p>
                   <p className="text-xs leading-none text-muted-foreground">
-                    {user.email}
+                    {headerUser.email}
                   </p>
                 </div>
               </DropdownMenuLabel>

@@ -263,6 +263,35 @@ service cloud.firestore {
         allow create, update: if isAdmin() || isSuperAdmin();
         allow delete: if isAdmin() || isSuperAdmin();
     }
+
+    // Support: Issue Reports
+    match /issueReports/{reportId} {
+        // Employees can create their own reports
+        allow create: if request.auth != null &&
+                      request.resource.data.userId is string && request.resource.data.userId == request.auth.uid &&
+                      request.resource.data.message is string &&
+                      request.resource.data.createdAt is timestamp &&
+                      (!request.resource.data.keys().hasAny(['status']) || request.resource.data.status == 'open');
+        // Admins can read all; user can read own
+        allow read: if isAdmin() || isSuperAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
+        // Admins can update status/notes
+        allow update: if (isAdmin() || isSuperAdmin());
+        allow delete: if isAdmin() || isSuperAdmin();
+    }
+
+    // Privacy: Account Deletion Requests
+    match /accountDeletionRequests/{reqId} {
+        // Employees can request deletion; admin approves later
+        allow create: if request.auth != null &&
+                      request.resource.data.userId is string && request.resource.data.userId == request.auth.uid &&
+                      (!request.resource.data.keys().hasAny(['reason']) || request.resource.data.reason is string) &&
+                      request.resource.data.createdAt is timestamp &&
+                      request.resource.data.status == 'pending';
+        // Admins can read all; user can read own
+        allow read: if isAdmin() || isSuperAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
+        // Only admins can approve/reject
+        allow update, delete: if isAdmin() || isSuperAdmin();
+    }
     match /genericApiKeys/{docId} {
         // Sensitive: restrict reads to admins only.
         allow read: if isAdmin() || isSuperAdmin();

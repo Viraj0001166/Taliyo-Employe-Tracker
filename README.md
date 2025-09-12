@@ -8,15 +8,23 @@ A modern employee performance tracking and admin portal built with Next.js, Fire
 
 - Employee Dashboard
   - Daily task logging (connections, follow-ups, cold emails, leads)
-  - Weekly progress summary and charts
+  - Weekly progress summary and charts (responsive Recharts with dark mode)
   - Resource library with ready-to-use scripts and templates
+  - Polls & Surveys widget (multi-select, anonymous, expiry-aware)
 - Admin Panel
-  - User and performance management
+  - Polls & Surveys manager with CSV export and live results
+  - Project Board: tasks with assignee, due date, description, attachments, filters
   - Team activity feeds and analytics
   - Resource management and broadcast tools
-- AI-Powered Insights
-  - Performance analysis and suggestions
-  - AI conversational tools for admins (Genkit + Google AI)
+- Dark Mode (Profile-synced)
+  - Theme preference persists to user profile for cross-device consistency
+  - Pre-hydration theme init prevents white/black flash
+- Support & Privacy (Settings)
+  - Contact Admin/HR, Knowledge Base link, Report Issue
+  - Manage sessions (logout current / all devices), Download my data, Request Account Deletion
+- UX / UI
+  - Shadcn/ui component system, semantic tokens, responsive layouts, keyboard-friendly
+  - Email masking for non-admin users in sensitive lists (privacy-first)
 
 ## 🧰 Tech Stack
 
@@ -78,6 +86,33 @@ pnpm dev
 ```
 The app starts at http://localhost:9002 (see `package.json` -> `dev`).
 
+### Firebase Configuration
+
+1) Enable the following products in your Firebase project:
+
+- Authentication (Email/Password or your chosen provider)
+- Firestore (in Native/Production mode)
+- Storage (default bucket)
+
+2) Deploy security rules
+
+```bash
+# Firestore rules
+firebase deploy --only firestore:rules
+
+# Storage rules
+firebase deploy --only storage
+```
+
+3) Optional: Use Firebase Emulators for local dev
+
+```bash
+firebase emulators:start --only firestore,storage
+# Then set (in .env.local)
+# FIRESTORE_EMULATOR_HOST=localhost:8080
+# FIREBASE_STORAGE_EMULATOR_HOST=localhost:9199
+```
+
 ## 🔢 NPM Scripts
 
 From `package.json`:
@@ -118,6 +153,7 @@ npm run genkit:dev
 ├─ docs/                       # Project docs & blueprint
 ├─ firebase.json               # Firebase configuration
 ├─ firestore.rules             # Firestore security rules
+├─ storage.rules               # Firebase Storage security rules
 └─ .env.example                # Example environment variables
 ```
 
@@ -126,6 +162,15 @@ npm run genkit:dev
 - Never commit `.env` files. `.gitignore` already ignores them.
 - Only `NEXT_PUBLIC_*` values are exposed on the client. Keep secrets server-side.
 - Review `firestore.rules` before going live.
+- Review `storage.rules` and test uploads/downloads in both dev and prod.
+
+### Important env vars (excerpt)
+
+```env
+NEXT_PUBLIC_SUPER_ADMIN_EMAIL=admin@yourcompany.com
+NEXT_PUBLIC_SUPPORT_EMAIL=hr@yourcompany.com
+NEXT_PUBLIC_KB_URL=https://kb.yourcompany.com
+```
 
 ## 🤖 AI / Genkit
 
@@ -144,6 +189,28 @@ npm run genkit:dev
   - Ensure your setup supports Next.js SSR (Cloud Functions/Hosting Integration)
   - Configure via `firebase.json`
   - Deploy rules/hosting as needed (requires Firebase CLI)
+
+## 🎨 Design System & UX
+
+- Tailwind semantic tokens: `bg-background`, `text-foreground`, `muted`, `card`, etc.
+- Shadcn/ui primitives for consistent, accessible components.
+- Dark mode tokens tuned for high contrast and readability.
+- Pre-hydration theme script to avoid theme flash.
+- Responsive grids and full-width actions on mobile where appropriate.
+
+## 🛠️ Troubleshooting
+
+- Unknown error in Firebase Console while editing Storage rules
+  - Cause: Console glitch/billing/permissions. Solution: deploy locally with CLI.
+  - `firebase login && firebase use <PROJECT_ID> && firebase deploy --only storage`
+
+- PNPM frozen lockfile failure in CI (`ERR_PNPM_OUTDATED_LOCKFILE`)
+  - Run `pnpm install --no-frozen-lockfile` locally, commit `pnpm-lock.yaml`, and ensure CI uses PNPM consistently.
+
+- Avatar upload doesn’t reflect in header
+  - We write to Storage at `users/{uid}/profile/*`, update Auth `photoURL`, and `users/{uid}.avatar`.
+  - Header live-subscribes to Auth + Firestore to reflect updates instantly.
+  - Verify Storage and Firestore rules are deployed; re-login if needed.
 
 ## 🧪 Testing (coming soon)
 - Add test setup (Jest/Playwright) if needed.

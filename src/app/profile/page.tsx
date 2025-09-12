@@ -4,20 +4,20 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/common/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { auth, db, storage } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { User as FirebaseUser } from 'firebase/auth';
-import { ArrowLeft, Loader2, UploadCloud } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { updateProfile, signOut } from "firebase/auth";
-import { collection, doc, getDoc, getDocs, limit, orderBy, query, updateDoc, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, limit, orderBy, query, updateDoc, where, setDoc, serverTimestamp } from 'firebase/firestore';
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+ 
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -46,7 +46,7 @@ export default function ProfilePage() {
   const [linkedin, setLinkedin] = useState('');
   const [instagram, setInstagram] = useState('');
   const [github, setGithub] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  // Avatar images are disabled: we use initials-only avatars across the app
   const [status, setStatus] = useState<'Active' | 'Training' | 'Inactive'>('Active');
 
   // KPIs
@@ -82,12 +82,20 @@ export default function ProfilePage() {
             setLinkedin(data.linkedin || '');
             setInstagram(data.instagram || '');
             setGithub(data.github || '');
-            setAvatarUrl(data.avatar || currentUser.photoURL || null);
+            // Avatar images disabled; no avatar URL usage
             setStatus((data.status === 'Training' || data.status === 'Inactive') ? data.status : 'Active');
           } else {
-            // If no user doc, they shouldn't be here
-            await signOut(auth);
-            router.push('/');
+            // Bootstrap a minimal user doc so profile can load without logging out
+            const superAdminEmail = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || '';
+            const role = currentUser.email && superAdminEmail && currentUser.email.toLowerCase() === superAdminEmail.toLowerCase() ? 'admin' : 'employee';
+            const bootstrap = {
+              name: currentUser.displayName || (currentUser.email || '').split('@')[0] || 'User',
+              email: currentUser.email || '',
+              role,
+              createdAt: serverTimestamp(),
+            } as any;
+            await setDoc(userDocRef, bootstrap, { merge: true });
+            if (role === 'admin') setIsAdmin(true);
           }
         } else {
           router.push('/');
@@ -96,8 +104,7 @@ export default function ProfilePage() {
         // Handle permission-denied or other Firestore errors gracefully
         console.warn('Profile init error', error);
         toast({ variant: 'destructive', title: 'Access error', description: error?.message || 'Unable to load profile.' });
-        try { await signOut(auth); } catch {}
-        router.push('/');
+        // Do not force logout here; keep user on page to retry
       } finally {
         setLoading(false);
       }
@@ -157,40 +164,7 @@ export default function ProfilePage() {
     }
   };
 
-  // Upload avatar to storage and update state
-  const handleAvatarUpload = async (file: File) => {
-    if (!user) return;
-    try {
-      const storageRef = ref(storage, `users/${user.uid}/profile/avatar_${Date.now()}.jpg`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      setAvatarUrl(url);
-      await updateProfile(user, { photoURL: url });
-      await updateDoc(doc(db, 'users', user.uid), { avatar: url });
-      toast({ title: 'Profile Picture Updated', description: 'Your profile picture has been uploaded.' });
-    } catch (err: any) {
-      // Fallback: upload via server API using Firebase Admin (bypasses Storage rules)
-      try {
-        const token = await user.getIdToken();
-        const fd = new FormData();
-        fd.append('file', file);
-        const res = await fetch('/api/profile/upload-avatar', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` },
-          body: fd,
-        });
-        const data = await res.json();
-        if (!res.ok || !data?.success || !data?.url) throw new Error(data?.error || 'Server upload failed');
-        const url = data.url as string;
-        setAvatarUrl(url);
-        await updateProfile(user, { photoURL: url });
-        await updateDoc(doc(db, 'users', user.uid), { avatar: url });
-        toast({ title: 'Profile Picture Updated', description: 'Uploaded via server.' });
-      } catch (e: any) {
-        toast({ variant: 'destructive', title: 'Upload Failed', description: e?.message || err?.message || 'Could not upload image.' });
-      }
-    }
-  };
+  // Avatar upload is disabled; initials-only avatars are used globally
 
   // Load KPIs: taskFields and latest daily log for this user
   useEffect(() => {
@@ -226,7 +200,7 @@ export default function ProfilePage() {
   const currentUser = {
     name: user.displayName || "User",
     email: user.email || "",
-    avatar: avatarUrl || user.photoURL || "",
+    avatar: "",
   };
   
   const dashboardPath = isAdmin ? '/admin' : '/dashboard';
@@ -251,15 +225,8 @@ export default function ProfilePage() {
               <CardContent>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
                   <Avatar className="h-20 w-20 shrink-0">
-                    {currentUser.avatar ? <AvatarImage src={currentUser.avatar} alt={currentUser.name} /> : null}
                     <AvatarFallback>{(currentUser.name?.trim()?.charAt(0) || 'U').toUpperCase()}</AvatarFallback>
                   </Avatar>
-                  <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <label className="inline-flex items-center gap-2">
-                      <Input className="h-9 w-full sm:w-auto" type="file" accept="image/*" onChange={(e) => e.target.files && e.target.files[0] && handleAvatarUpload(e.target.files[0])} />
-                    </label>
-                    <UploadCloud className="h-5 w-5 text-muted-foreground" />
-                  </div>
                 </div>
                 <form onSubmit={handleProfileUpdate} className="space-y-4 md:space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

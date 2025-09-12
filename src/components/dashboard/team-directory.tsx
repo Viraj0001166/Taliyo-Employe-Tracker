@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { Employee } from "@/lib/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { Badge } from "../ui/badge";
@@ -77,7 +77,6 @@ export function TeamDirectory({ employees: employeesProp }: TeamDirectoryProps) 
                     <TableCell>
                         <div className="flex items-center gap-3">
                             <Avatar className="h-9 w-9">
-                                {employee.avatar ? <AvatarImage src={employee.avatar} alt={employee.name} /> : null}
                                 <AvatarFallback>{(employee.name?.trim()?.charAt(0) || 'U').toUpperCase()}</AvatarFallback>
                             </Avatar>
                             <p className="text-sm font-medium leading-none">{employee.name}</p>
