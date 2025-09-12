@@ -8,10 +8,11 @@ import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Shield, User } from 'lucide-react';
+import { Loader2, Shield, User, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const RotatingTech = dynamic(() => import('@/components/common/rotating-tech'), {
   ssr: false,
@@ -93,11 +94,22 @@ export default function LandingPage() {
               <CardDescription className="text-base">Access your personal dashboard to log tasks and view progress.</CardDescription>
             </CardHeader>
             <CardContent className="p-6 pt-0">
-              <Button asChild className="w-full text-lg py-7">
-                <Link href="/employee/login">
-                  Login as Employee
-                </Link>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="w-full text-lg py-7 flex items-center justify-center">
+                    Employee Options
+                    <ChevronDown className="ml-2 h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="center" className="min-w-[220px]">
+                  <DropdownMenuItem asChild>
+                    <Link href="/employee/login">Login as Employee</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/training/login">Login to Training</Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </CardContent>
           </Card>
           <Card className="shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300">

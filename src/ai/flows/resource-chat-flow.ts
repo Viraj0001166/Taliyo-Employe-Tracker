@@ -14,6 +14,7 @@ import { db } from '@/lib/firebase';
 import type { Resource } from '@/lib/types';
 import { gemini15Flash, gemini15Flash8b } from '@genkit-ai/googleai';
 import { generateResourceContent } from '@/ai/flows/generate-resource-content-flow';
+import { applyTaliyo } from '@/ai/prompts/taliyo-assistant';
 
 // Define a tool to get the knowledge base from Firestore
 const getKnowledgeBase = ai.defineTool(
@@ -60,7 +61,7 @@ const prompt = ai.definePrompt({
     input: { schema: ResourceChatInputSchema },
     output: { schema: ResourceChatOutputSchema },
     tools: [getKnowledgeBase],
-    prompt: `You are a friendly, professional AI assistant for employees.
+    prompt: applyTaliyo(`You are a friendly, professional AI assistant for employees.
 Your primary goal is to help with questions about the company's internal resources.
 
 Style:
@@ -84,7 +85,7 @@ This is the conversation history so far:
 This is the user's latest question:
 "{{question}}"
 
-Answer the user's question based on the provided resources.`,
+Answer the user's question based on the provided resources.`),
 });
 
 // Fallback prompt using a lighter model to reduce overload errors (503)
@@ -94,7 +95,7 @@ const promptFallback = ai.definePrompt({
     input: { schema: ResourceChatInputSchema },
     output: { schema: ResourceChatOutputSchema },
     tools: [getKnowledgeBase],
-    prompt: `You are a friendly, professional AI assistant for employees.
+    prompt: applyTaliyo(`You are a friendly, professional AI assistant for employees.
 Your primary goal is to help with questions about the company's internal resources.
 
 Style:
@@ -118,7 +119,7 @@ This is the conversation history so far:
 This is the user's latest question:
 "{{question}}"
 
-Answer the user's question based on the provided resources.`,
+Answer the user's question based on the provided resources.`),
 });
 
 const resourceChatFlow = ai.defineFlow(

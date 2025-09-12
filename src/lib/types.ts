@@ -8,6 +8,8 @@ export interface Employee {
   email: string;
   avatar: string;
   role: 'employee' | 'admin';
+  // Employee status category (for directory/filtering)
+  status?: 'Active' | 'Training' | 'Inactive';
   // Optional profile fields
   title?: string; // Job Title
   department?: string; // Department / Team
@@ -70,6 +72,8 @@ export interface VisitorLog {
   };
   ipAddress: string;
   userAgent: string;
+  // The portal used to login (employee, training, admin)
+  portal?: 'employee' | 'training' | 'admin';
 }
 
 export interface Announcement {

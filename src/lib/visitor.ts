@@ -18,7 +18,7 @@ async function fetchPublicIp(timeoutMs = 3000): Promise<string> {
   }
 }
 
-export async function createVisitorLogForCurrentUser(): Promise<void> {
+export async function createVisitorLogForCurrentUser(portal?: 'employee' | 'training' | 'admin'): Promise<void> {
   const user = auth.currentUser;
   if (!user) throw new Error("No authenticated user to create visitor log for");
 
@@ -34,5 +34,6 @@ export async function createVisitorLogForCurrentUser(): Promise<void> {
     loginTime: new Date(),
     ipAddress,
     userAgent,
+    ...(portal ? { portal } : {}),
   });
 }

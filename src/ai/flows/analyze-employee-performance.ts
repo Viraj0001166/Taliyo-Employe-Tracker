@@ -11,6 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { gemini15Flash } from '@genkit-ai/googleai';
+import { applyTaliyo } from '@/ai/prompts/taliyo-assistant';
 
 const AnalyzeEmployeePerformanceInputSchema = z.object({
   employeeName: z.string().describe('The name of the employee to analyze.'),
@@ -35,12 +36,12 @@ const prompt = ai.definePrompt({
   model: gemini15Flash,
   input: {schema: AnalyzeEmployeePerformanceInputSchema},
   output: {schema: AnalyzeEmployeePerformanceOutputSchema},
-  prompt: `You are an AI performance analyst. Analyze the weekly report of {{employeeName}} and provide detailed analysis and suggestions for improvement.
+  prompt: applyTaliyo(`You are an AI performance analyst. Analyze the weekly report of {{employeeName}} and provide detailed analysis and suggestions for improvement.
 
 Weekly Report:
 {{weeklyReport}}
 
-Provide your analysis and suggestions in a structured format.`,
+Provide your analysis and suggestions in a structured format.`),
 });
 
 const analyzeEmployeePerformanceFlow = ai.defineFlow(

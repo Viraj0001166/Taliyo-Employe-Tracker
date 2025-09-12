@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Shield } from 'lucide-react';
+import { Loader2, Shield, Eye, EyeOff } from 'lucide-react';
 import { createVisitorLogForCurrentUser } from '@/lib/visitor';
 import Link from 'next/link';
 
@@ -25,6 +25,7 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const visitorLoggedRef = useRef(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -32,7 +33,7 @@ export default function AdminLoginPage() {
         if (user.email === SUPER_ADMIN_EMAIL) {
           // Log visit for super admin who is already signed in
           if (!visitorLoggedRef.current) {
-            try { await createVisitorLogForCurrentUser(); } catch {}
+            try { await createVisitorLogForCurrentUser('admin'); } catch {}
             visitorLoggedRef.current = true;
           }
           router.push('/admin');
@@ -42,7 +43,7 @@ export default function AdminLoginPage() {
         const userDocSnap = await getDoc(userDocRef);
         if (userDocSnap.exists() && userDocSnap.data().role === 'admin') {
           if (!visitorLoggedRef.current) {
-            try { await createVisitorLogForCurrentUser(); } catch {}
+            try { await createVisitorLogForCurrentUser('admin'); } catch {}
             visitorLoggedRef.current = true;
           }
           router.push('/admin');
@@ -68,7 +69,7 @@ export default function AdminLoginPage() {
       if (userCredential.user.email === SUPER_ADMIN_EMAIL) {
         toast({ title: "Login Successful", description: "Redirecting to admin panel..." });
         if (!visitorLoggedRef.current) {
-          try { await createVisitorLogForCurrentUser(); } catch {}
+          try { await createVisitorLogForCurrentUser('admin'); } catch {}
           visitorLoggedRef.current = true;
         }
         router.push('/admin');
@@ -124,7 +125,7 @@ export default function AdminLoginPage() {
 
             toast({ title: 'Admin Account Created', description: 'Redirecting to admin panel...' });
             if (!visitorLoggedRef.current) {
-              try { await createVisitorLogForCurrentUser(); } catch {}
+              try { await createVisitorLogForCurrentUser('admin'); } catch {}
               visitorLoggedRef.current = true;
             }
             router.push('/admin');
@@ -190,14 +191,25 @@ export default function AdminLoginPage() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="password">Password</Label>
-              <Input 
-                id="password" 
-                type="password" 
-                required 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-              />
+              <div className="relative">
+                <Input 
+                  id="password" 
+                  type={showPassword ? 'text' : 'password'} 
+                  required 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}

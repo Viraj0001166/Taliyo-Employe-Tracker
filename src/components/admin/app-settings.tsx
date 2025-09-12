@@ -54,6 +54,9 @@ export function AppSettings() {
   const [genericApiKeys, setGenericApiKeys] = useState<GenericApiKey[]>([]);
   const [loadingGenericKeys, setLoadingGenericKeys] = useState(true);
   const [editingGenericKey, setEditingGenericKey] = useState<GenericApiKey | null>(null);
+  const [userEdits, setUserEdits] = useState<Record<string, { role: 'employee' | 'admin'; status: 'Active' | 'Training' | 'Inactive' }>>({});
+  const [savingUser, setSavingUser] = useState<string | null>(null);
+  const SUPER_ADMIN_EMAIL = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL || '';
 
   // Removed webhook form
 
@@ -557,6 +560,97 @@ export function AppSettings() {
                     )}
                 </div>
             </CardContent>
+        </Card>
+
+        {/* Manage Users: Role & Status */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Manage Users</CardTitle>
+            <CardDescription>Change user roles and status. Super Admin role is protected.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="border rounded-md overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {employees.map((u) => {
+                    const edited = userEdits[u.id] || { role: (u.role as 'employee'|'admin') || 'employee', status: (u as any).status === 'Training' || (u as any).status === 'Inactive' ? (u as any).status : 'Active' };
+                    const isSuper = (u.email || '') === SUPER_ADMIN_EMAIL;
+                    return (
+                      <TableRow key={u.id}>
+                        <TableCell className="whitespace-nowrap">{u.name || '-'}</TableCell>
+                        <TableCell className="whitespace-nowrap text-muted-foreground">{u.email || '-'}</TableCell>
+                        <TableCell>
+                          <Select
+                            value={edited.role}
+                            onValueChange={(v: 'employee' | 'admin') => setUserEdits((prev) => ({ ...prev, [u.id]: { ...(prev[u.id] || edited), role: v } }))}
+                            disabled={isSuper}
+                          >
+                            <SelectTrigger className="h-8 w-[140px]">
+                              <SelectValue placeholder="Role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="employee">Employee</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={edited.status}
+                            onValueChange={(v: 'Active' | 'Training' | 'Inactive') => setUserEdits((prev) => ({ ...prev, [u.id]: { ...(prev[u.id] || edited), status: v } }))}
+                          >
+                            <SelectTrigger className="h-8 w-[150px]">
+                              <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Active">Active</SelectItem>
+                              <SelectItem value="Training">Training</SelectItem>
+                              <SelectItem value="Inactive">Inactive</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                setSavingUser(u.id);
+                                const payload = userEdits[u.id] || edited;
+                                await updateDoc(doc(db, 'users', u.id), { role: payload.role, status: payload.status });
+                                toast({ title: 'User Updated', description: `${u.email || 'User'} is now ${payload.role} (${payload.status}).` });
+                              } catch (e: any) {
+                                toast({ variant: 'destructive', title: 'Update failed', description: e?.message || 'Could not update user.' });
+                              } finally {
+                                setSavingUser(null);
+                              }
+                            }}
+                            disabled={savingUser === u.id || isSuper}
+                          >
+                            {savingUser === u.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                            Save
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {employees.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center h-20 text-muted-foreground">No users found.</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
         </Card>
     </div>
   );

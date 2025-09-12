@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
 import { collection, query, where, getDocs, orderBy, limit, onSnapshot, doc, updateDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { Button } from "../ui/button";
-import { Edit, Loader2, KeyRound, Eye, EyeOff, Wand2, Copy, Trash2 } from "lucide-react";
+import { Edit, Loader2, KeyRound, Eye, EyeOff, Wand2, Copy, Trash2, UserCog } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -222,6 +222,173 @@ interface PerformanceMetrics {
   };
 }
 
+function EditUserProfileDialog({ employee, onUpdated }: { employee: Employee; onUpdated: (patch: { id: string } & Partial<Employee>) => void }) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const { toast } = useToast();
+
+    const [name, setName] = useState(employee.name || "");
+    const [email, setEmail] = useState(employee.email || "");
+    const [title, setTitle] = useState(employee.title || "");
+    const [department, setDepartment] = useState(employee.department || "");
+    const [employeeCode, setEmployeeCode] = useState(employee.employeeCode || "");
+    const [joiningDate, setJoiningDate] = useState(employee.joiningDate || "");
+    const [reportingManager, setReportingManager] = useState(employee.reportingManager || "");
+    const [role, setRole] = useState<Employee['role']>(employee.role);
+    const [idGenerating, setIdGenerating] = useState(false);
+
+    const fetchEmployeeId = async (): Promise<string | null> => {
+        try {
+            setIdGenerating(true);
+            const token = await auth.currentUser?.getIdToken();
+            const res = await fetch('/api/admin/generate-employee-id', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                },
+            });
+            const data = await res.json();
+            if (!res.ok || !data?.success) throw new Error(data?.error || 'Failed to generate');
+            return String(data.id);
+        } catch (e: any) {
+            console.error('generate-employee-id failed', e);
+            toast({ variant: 'destructive', title: 'Could not generate Employee ID', description: e?.message || 'Please try again.' });
+            return null;
+        } finally {
+            setIdGenerating(false);
+        }
+    };
+
+    const resetForm = () => {
+        setName(employee.name || "");
+        setEmail(employee.email || "");
+        setTitle(employee.title || "");
+        setDepartment(employee.department || "");
+        setEmployeeCode(employee.employeeCode || "");
+        setJoiningDate(employee.joiningDate || "");
+        setReportingManager(employee.reportingManager || "");
+        setRole(employee.role);
+    };
+
+    const handleSave = async () => {
+        if (!name.trim()) { toast({ variant: 'destructive', title: 'Name is required' }); return; }
+        if (!email.trim()) { toast({ variant: 'destructive', title: 'Email is required' }); return; }
+        setSaving(true);
+        try {
+            const token = await auth.currentUser?.getIdToken();
+            const res = await fetch('/api/admin/update-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({
+                    uid: employee.id,
+                    updates: {
+                        name: name.trim(),
+                        email: email.trim(),
+                        role,
+                        title: title.trim(),
+                        department: department.trim(),
+                        employeeCode: employeeCode.trim(),
+                        joiningDate: joiningDate.trim(),
+                        reportingManager: reportingManager.trim(),
+                    },
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok || !data?.success) throw new Error(data?.error || 'Request failed');
+
+            toast({ title: 'Profile Updated', description: `${name} has been updated.` });
+            onUpdated({
+                id: employee.id,
+                name: name.trim(),
+                email: email.trim(),
+                role,
+                title: title.trim(),
+                department: department.trim(),
+                employeeCode: employeeCode.trim(),
+                joiningDate: joiningDate.trim(),
+                reportingManager: reportingManager.trim(),
+            });
+            setIsOpen(false);
+        } catch (err: any) {
+            console.error(err);
+            toast({ variant: 'destructive', title: 'Update failed', description: err?.message || 'Could not update user.' });
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={(o) => { setIsOpen(o); if (!o) resetForm(); }}>
+            <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="Edit Profile">
+                    <UserCog className="h-4 w-4" />
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Edit Profile</DialogTitle>
+                    <DialogDescription>Update user information and role.</DialogDescription>
+                </DialogHeader>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-2">
+                    <div className="space-y-1">
+                        <Label htmlFor={`name-${employee.id}`}>Full Name</Label>
+                        <Input id={`name-${employee.id}`} value={name} onChange={(e) => setName(e.target.value)} />
+                    </div>
+                    <div className="space-y-1">
+                        <Label htmlFor={`email-${employee.id}`}>Email (official)</Label>
+                        <Input id={`email-${employee.id}`} type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                    </div>
+                    <div className="space-y-1">
+                        <Label htmlFor={`title-${employee.id}`}>Job Title</Label>
+                        <Input id={`title-${employee.id}`} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Digital Marketing Executive" />
+                    </div>
+                    <div className="space-y-1">
+                        <Label htmlFor={`dept-${employee.id}`}>Department / Team</Label>
+                        <Input id={`dept-${employee.id}`} value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="e.g. Marketing" />
+                    </div>
+                    <div className="space-y-1">
+                        <Label htmlFor={`ecode-${employee.id}`}>Employee ID</Label>
+                        <div className="flex gap-2">
+                            <Input id={`ecode-${employee.id}`} value={employeeCode} onChange={(e) => setEmployeeCode(e.target.value)} placeholder="e.g. TLY-202509-0001" />
+                            <Button type="button" variant="outline" onClick={async () => { const id = await fetchEmployeeId(); if (id) setEmployeeCode(id); }} disabled={idGenerating} aria-label="Generate Employee ID">
+                                {idGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                            </Button>
+                        </div>
+                    </div>
+                    <div className="space-y-1">
+                        <Label htmlFor={`jdate-${employee.id}`}>Joining Date</Label>
+                        <Input id={`jdate-${employee.id}`} type="date" value={joiningDate} onChange={(e) => setJoiningDate(e.target.value)} />
+                    </div>
+                    <div className="space-y-1 md:col-span-2">
+                        <Label htmlFor={`rmanager-${employee.id}`}>Reporting Manager</Label>
+                        <Input id={`rmanager-${employee.id}`} value={reportingManager} onChange={(e) => setReportingManager(e.target.value)} placeholder="e.g. Jane Doe" />
+                    </div>
+                    <div className="space-y-1 md:col-span-2">
+                        <Label htmlFor={`role-${employee.id}`}>Role</Label>
+                        <Select value={role} onValueChange={(v: 'employee' | 'admin') => setRole(v)}>
+                            <SelectTrigger id={`role-${employee.id}`}>
+                                <SelectValue placeholder="Select a role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="employee">Employee</SelectItem>
+                                <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => { setIsOpen(false); resetForm(); }}>Cancel</Button>
+                    <Button onClick={handleSave} disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 function EditUserRoleDialog({ employee, onRoleChange }: { employee: Employee, onRoleChange: (employeeId: string, newRole: 'employee' | 'admin') => void }) {
     const [isOpen, setIsOpen] = useState(false);
     const [newRole, setNewRole] = useState<'employee' | 'admin'>(employee.role);
@@ -349,6 +516,10 @@ export function EmployeePerformance({ employees: initialEmployees }: EmployeePer
       );
   };
 
+  const handleProfileUpdated = (patch: { id: string } & Partial<Employee>) => {
+      setEmployees(prev => prev.map(e => e.id === patch.id ? { ...e, ...patch } : e));
+  };
+
 
   return (
     <Card>
@@ -408,6 +579,7 @@ export function EmployeePerformance({ employees: initialEmployees }: EmployeePer
                         <div className="flex justify-end items-center gap-2">
                            <AIPerformanceAnalyzer employee={employee} />
                            <SetPasswordDialog employee={employee} />
+                           <EditUserProfileDialog employee={employee} onUpdated={handleProfileUpdated} />
                            <EditUserRoleDialog employee={employee} onRoleChange={handleRoleChange} />
                            <DeleteUserDialog employee={employee} onDeleted={(id) => setEmployees(prev => prev.filter(e => e.id === id ? false : true))} />
                         </div>

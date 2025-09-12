@@ -29,13 +29,16 @@ import { auth, db, getSecondaryAuth } from '@/lib/firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 const formSchema = z.object({
-  firstName: z.string().min(1, { message: 'First name is required.' }),
-  lastName: z.string().min(1, { message: 'Last name is required.' }),
+  fullName: z.string().min(1, { message: 'Full name is required.' }),
   email: z.string().email({ message: 'Invalid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
-  role: z.enum(['employee', 'admin'], {
-    required_error: 'You need to select a user role.',
-  }),
+  role: z.enum(['employee', 'admin'], { required_error: 'You need to select a user role.' }),
+  // Additional profile fields set by admin at creation time
+  title: z.string().optional(),
+  department: z.string().optional(),
+  employeeCode: z.string().optional(),
+  joiningDate: z.string().optional(), // yyyy-MM-dd
+  reportingManager: z.string().optional(),
 });
 
 interface AddUserFormProps {
@@ -50,25 +53,69 @@ export function AddUserForm({ onUserAdded }: AddUserFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      firstName: '',
-      lastName: '',
+      fullName: '',
       email: '',
       password: '',
       role: 'employee',
+      title: '',
+      department: '',
+      employeeCode: '',
+      joiningDate: '',
+      reportingManager: '',
     },
   });
 
   // Removed: Google Sheet webhook notifier
 
+  const [idGenerating, setIdGenerating] = useState(false);
+
+  const fetchEmployeeId = async (): Promise<string | null> => {
+    try {
+      setIdGenerating(true);
+      const token = await auth.currentUser?.getIdToken();
+      const res = await fetch('/api/admin/generate-employee-id', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.success) throw new Error(data?.error || 'Failed to generate');
+      return String(data.id);
+    } catch (e: any) {
+      console.error('generate-employee-id failed', e);
+      toast({ variant: 'destructive', title: 'Could not generate Employee ID', description: e?.message || 'Please try again.' });
+      return null;
+    } finally {
+      setIdGenerating(false);
+    }
+  };
+
+  const requestEmployeeId = async () => {
+    const id = await fetchEmployeeId();
+    if (id) {
+      form.setValue('employeeCode', id, { shouldDirty: true });
+      toast({ title: 'Generated', description: `Employee ID: ${id}` });
+    }
+  };
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
     try {
+      // Ensure we have a proper employee code (generate if empty)
+      let employeeCode = (values.employeeCode || '').trim();
+      if (!employeeCode) {
+        const generated = await fetchEmployeeId();
+        if (generated) employeeCode = generated;
+      }
+
       // Use secondary auth to avoid replacing the current admin session
       const secondaryAuth = getSecondaryAuth();
       const userCredential = await createUserWithEmailAndPassword(secondaryAuth, values.email, values.password);
       
       const user = userCredential.user;
-      const displayName = `${values.firstName} ${values.lastName}`;
+      const displayName = values.fullName.trim();
       
       await updateProfile(user, { displayName });
 
@@ -76,6 +123,11 @@ export function AddUserForm({ onUserAdded }: AddUserFormProps) {
         name: displayName,
         email: values.email,
         role: values.role,
+        ...(values.title ? { title: values.title } : {}),
+        ...(values.department ? { department: values.department } : {}),
+        ...(employeeCode ? { employeeCode } : {}),
+        ...(values.joiningDate ? { joiningDate: values.joiningDate } : {}),
+        ...(values.reportingManager ? { reportingManager: values.reportingManager } : {}),
       });
 
       // Removed: Google Sheet webhook notifier
@@ -95,15 +147,26 @@ export function AddUserForm({ onUserAdded }: AddUserFormProps) {
           const secondaryAuth = getSecondaryAuth();
           const cred = await signInWithEmailAndPassword(secondaryAuth, values.email, values.password);
           const existingUser = cred.user;
-          const displayName = `${values.firstName} ${values.lastName}`;
+          const displayName = values.fullName.trim();
 
           // Create or update the users doc using the existing UID
           const userRef = doc(db, 'users', existingUser.uid);
           const userSnap = await getDoc(userRef);
+          // Ensure employee code exists; generate if empty
+          let linkEmployeeCode = (values.employeeCode || '').trim();
+          if (!linkEmployeeCode) {
+            const generated = await fetchEmployeeId();
+            if (generated) linkEmployeeCode = generated;
+          }
           await setDoc(userRef, {
             name: displayName,
             email: values.email,
             role: values.role,
+            ...(values.title ? { title: values.title } : {}),
+            ...(values.department ? { department: values.department } : {}),
+            ...(linkEmployeeCode ? { employeeCode: linkEmployeeCode } : {}),
+            ...(values.joiningDate ? { joiningDate: values.joiningDate } : {}),
+            ...(values.reportingManager ? { reportingManager: values.reportingManager } : {}),
           }, { merge: true });
 
           // Removed: Google Sheet webhook notifier
@@ -172,34 +235,19 @@ export function AddUserForm({ onUserAdded }: AddUserFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="firstName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>First Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="John" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="lastName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Last Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="Doe" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="fullName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Full Name</FormLabel>
+              <FormControl>
+                <Input placeholder="John Doe" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="email"
@@ -213,6 +261,78 @@ export function AddUserForm({ onUserAdded }: AddUserFormProps) {
             </FormItem>
           )}
         />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Job Title</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g. Digital Marketing Executive" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="department"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Department / Team</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g. Marketing" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="employeeCode"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Employee ID</FormLabel>
+                <FormControl>
+                  <div className="flex gap-2">
+                    <Input placeholder="e.g. TLY-202509-0001" {...field} />
+                    <Button type="button" variant="outline" onClick={requestEmployeeId} disabled={idGenerating} aria-label="Generate Employee ID">
+                      {idGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="joiningDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Joining Date</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="reportingManager"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Reporting Manager</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g. Jane Doe" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         <FormField
           control={form.control}
           name="password"

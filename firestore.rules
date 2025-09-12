@@ -22,22 +22,17 @@ service cloud.firestore {
 
     // Validation helpers
     function userSelfUpdateAllowed(userId) {
-      let allowed = ['name','avatar','title','department','employeeCode','phone','phoneHidden','locationCity','locationState','locationCountry','joiningDate','reportingManager','roleDescription','linkedin','instagram','github'];
+      // Employees can only edit safe personal fields. Admin-only fields (name, title, department, employeeCode, joiningDate, reportingManager) are excluded.
+      let allowed = ['avatar','phone','phoneHidden','locationCity','locationState','locationCountry','roleDescription','linkedin','instagram','github'];
       let changed = request.resource.data.diff(resource.data).changedKeys();
       return isOwner(userId) &&
              changed.hasOnly(allowed) &&
-             (!changed.hasAny(['name']) || request.resource.data.name is string) &&
              (!changed.hasAny(['avatar']) || request.resource.data.avatar is string) &&
-             (!changed.hasAny(['title']) || request.resource.data.title is string) &&
-             (!changed.hasAny(['department']) || request.resource.data.department is string) &&
-             (!changed.hasAny(['employeeCode']) || request.resource.data.employeeCode is string) &&
              (!changed.hasAny(['phone']) || request.resource.data.phone is string) &&
              (!changed.hasAny(['phoneHidden']) || request.resource.data.phoneHidden is bool) &&
              (!changed.hasAny(['locationCity']) || request.resource.data.locationCity is string) &&
              (!changed.hasAny(['locationState']) || request.resource.data.locationState is string) &&
              (!changed.hasAny(['locationCountry']) || request.resource.data.locationCountry is string) &&
-             (!changed.hasAny(['joiningDate']) || request.resource.data.joiningDate is string) &&
-             (!changed.hasAny(['reportingManager']) || request.resource.data.reportingManager is string) &&
              (!changed.hasAny(['roleDescription']) || request.resource.data.roleDescription is string) &&
              (!changed.hasAny(['linkedin']) || request.resource.data.linkedin is string) &&
              (!changed.hasAny(['instagram']) || request.resource.data.instagram is string) &&

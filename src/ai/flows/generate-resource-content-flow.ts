@@ -10,6 +10,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { gemini15Flash, gemini15Flash8b } from '@genkit-ai/googleai';
+import { applyTaliyo } from '@/ai/prompts/taliyo-assistant';
 
 const GenerateResourceContentInputSchema = z.object({
   prompt: z.string().describe('The user prompt to generate content from.'),
@@ -125,7 +126,7 @@ const promptFallback = ai.definePrompt({
     model: gemini15Flash8b,
     input: { schema: GenerateResourceContentInputSchema },
     output: { schema: GenerateResourceContentOutputSchema },
-    prompt: `You are an expert content writer for a business development team.
+    prompt: applyTaliyo(`You are an expert content writer for a business development team.
 Generate a resource content based on the following prompt.
 The content should be clear, concise, and professional. It could be an email template, a call script, or a guideline.
 
@@ -137,7 +138,7 @@ STRICT OUTPUT RULES:
 
 Prompt: {{{prompt}}}
 
-Now output the content (plain text only).`,
+Now output the content (plain text only).`),
 });
 
 const generateResourceContentFallbackFlow = ai.defineFlow(
@@ -173,13 +174,13 @@ const prompt = ai.definePrompt({
     model: gemini15Flash,
     input: { schema: GenerateResourceContentInputSchema },
     output: { schema: GenerateResourceContentOutputSchema },
-    prompt: `You are an expert content writer for a business development team.
+    prompt: applyTaliyo(`You are an expert content writer for a business development team.
 Generate a resource content based on the following prompt.
 The content should be clear, concise, and professional. It could be an email template, a call script, or a guideline.
 
 Prompt: {{{prompt}}}
 
-Generate the content.`,
+Generate the content.`),
 });
 
 const generateResourceContentFlow = ai.defineFlow(

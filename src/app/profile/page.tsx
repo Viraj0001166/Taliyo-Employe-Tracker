@@ -19,6 +19,7 @@ import { collection, doc, getDoc, getDocs, limit, orderBy, query, updateDoc, whe
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import type { TaskField, DailyLog } from "@/lib/types";
 
@@ -46,6 +47,7 @@ export default function ProfilePage() {
   const [instagram, setInstagram] = useState('');
   const [github, setGithub] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [status, setStatus] = useState<'Active' | 'Training' | 'Inactive'>('Active');
 
   // KPIs
   const [taskFields, setTaskFields] = useState<TaskField[]>([]);
@@ -81,6 +83,7 @@ export default function ProfilePage() {
             setInstagram(data.instagram || '');
             setGithub(data.github || '');
             setAvatarUrl(data.avatar || currentUser.photoURL || null);
+            setStatus((data.status === 'Training' || data.status === 'Inactive') ? data.status : 'Active');
           } else {
             // If no user doc, they shouldn't be here
             await signOut(auth);
@@ -108,27 +111,32 @@ export default function ProfilePage() {
     if (!user || !displayName) return;
     setIsUpdating(true);
     try {
-      await updateProfile(user, { displayName });
-      
+      if (isAdmin) {
+        await updateProfile(user, { displayName });
+      }
       const userDocRef = doc(db, 'users', user.uid);
-      await updateDoc(userDocRef, {
-        name: displayName,
-        title,
-        department,
-        employeeCode,
+      const payload: any = {
         phone,
         phoneHidden,
         locationCity,
         locationState,
         locationCountry,
-        joiningDate,
-        reportingManager,
         roleDescription,
         linkedin,
         instagram,
         github,
         ...(avatarUrl ? { avatar: avatarUrl } : {}),
-      });
+        ...(isAdmin ? {
+          name: displayName,
+          title,
+          department,
+          employeeCode,
+          joiningDate,
+          reportingManager,
+          status,
+        } : {}),
+      };
+      await updateDoc(userDocRef, payload);
       
       toast({
         title: "Profile Updated",
@@ -257,19 +265,35 @@ export default function ProfilePage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="displayName">Full Name</Label>
-                      <Input id="displayName" type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Your full name" required />
+                      <Input id="displayName" type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Your full name" required disabled={!isAdmin} />
+                      {!isAdmin && (
+                        <p className="text-xs text-muted-foreground">Only admin can change name, job, department, employee ID, joining date, and reporting manager.</p>
+                      )}
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="title">Job Title</Label>
-                      <Input id="title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Digital Marketing Executive" />
+                      <Input id="title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Digital Marketing Executive" disabled={!isAdmin} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="status">Employment Status</Label>
+                      <Select value={status} onValueChange={(v: 'Active' | 'Training' | 'Inactive') => setStatus(v)} disabled={!isAdmin}>
+                        <SelectTrigger id="status" className="h-9">
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Active">Active</SelectItem>
+                          <SelectItem value="Training">Training</SelectItem>
+                          <SelectItem value="Inactive">Inactive</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="department">Department / Team</Label>
-                      <Input id="department" type="text" value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="e.g. Marketing" />
+                      <Input id="department" type="text" value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="e.g. Marketing" disabled={!isAdmin} />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="employeeCode">Employee ID</Label>
-                      <Input id="employeeCode" type="text" value={employeeCode} onChange={(e) => setEmployeeCode(e.target.value)} placeholder="e.g. EMP-123" />
+                      <Input id="employeeCode" type="text" value={employeeCode} onChange={(e) => setEmployeeCode(e.target.value)} placeholder="e.g. EMP-123" disabled={!isAdmin} />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="email">Email (official)</Label>
@@ -302,11 +326,11 @@ export default function ProfilePage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="joiningDate">Joining Date</Label>
-                      <Input id="joiningDate" type="date" value={joiningDate} onChange={(e) => setJoiningDate(e.target.value)} />
+                      <Input id="joiningDate" type="date" value={joiningDate} onChange={(e) => setJoiningDate(e.target.value)} disabled={!isAdmin} />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="reportingManager">Reporting Manager</Label>
-                      <Input id="reportingManager" type="text" value={reportingManager} onChange={(e) => setReportingManager(e.target.value)} placeholder="e.g. Jane Doe" />
+                      <Input id="reportingManager" type="text" value={reportingManager} onChange={(e) => setReportingManager(e.target.value)} placeholder="e.g. Jane Doe" disabled={!isAdmin} />
                     </div>
                   </div>
 

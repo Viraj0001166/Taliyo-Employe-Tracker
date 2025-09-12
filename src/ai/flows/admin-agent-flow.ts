@@ -14,6 +14,7 @@ import { collection, addDoc, getDocs, query, where, updateDoc, doc } from 'fireb
 import { db } from '@/lib/firebase';
 import type { Resource } from '@/lib/types';
 import { gemini15Flash } from '@genkit-ai/googleai';
+import { applyTaliyo } from '@/ai/prompts/taliyo-assistant';
 
 // Tool to create or update a resource in Firestore
 const createOrUpdateResource = ai.defineTool(
@@ -209,7 +210,7 @@ const prompt = ai.definePrompt({
     input: { schema: AdminAgentChatInputSchema },
     output: { schema: AdminAgentChatOutputSchema },
     tools: [createOrUpdateResource, saveMemory, getMemories, searchWeb, fetchWebPage],
-    prompt: `You are an AI Administrative Assistant for Taliyo. Your name is 'LeadTrack Pulse AI'.
+    prompt: applyTaliyo(`You are an AI Administrative Assistant for Taliyo. Your name is 'LeadTrack Pulse AI'.
 You are friendly, professional, and highly capable.
 Your primary role is to help the administrator manage company resources by understanding their commands and using the available tools.
 
@@ -242,7 +243,7 @@ This is the conversation history so far:
 This is the admin's latest request:
 "{{prompt}}"
 
-Based on this, understand the user's goal and respond or use a tool.`,
+Based on this, understand the user's goal and respond or use a tool.`),
 });
 
 const adminAgentFlow = ai.defineFlow(

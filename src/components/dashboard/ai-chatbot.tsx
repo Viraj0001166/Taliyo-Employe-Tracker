@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useState, useRef, useEffect, type KeyboardEvent, type ChangeEvent } from 'react';
+import { useState, useRef, useEffect, useMemo, type KeyboardEvent, type ChangeEvent } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Sparkles, Send, Bot, User, Loader2, Trash2, Download, CloudUpload, Pin as PinIcon, PinOff, FileText, ChevronUp, ChevronDown } from "lucide-react";
+import { Sparkles, Send, Bot, User, Loader2, Trash2, Download, CloudUpload, Pin as PinIcon, PinOff, FileText, ChevronUp, ChevronDown, MoreHorizontal } from "lucide-react";
 import { resourceChat } from '@/ai/flows/resource-chat-flow';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -15,17 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { db, auth } from '@/lib/firebase';
 import { collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 type Message = {
   id?: string;
@@ -77,6 +67,58 @@ export function AiChatbot() {
     'Daily task sheet example',
   ];
   const [dynamicSuggestions, setDynamicSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const suggestionGroups = useMemo(() => {
+    const groups: { label: string; items: string[] }[] = [
+      {
+        label: 'Email',
+        items: [
+          'Cold outreach email template',
+          'Follow-up email (1)',
+          'Follow-up email (2)',
+          'Follow-up email (3)',
+          'Project proposal email',
+          'Invoice / payment reminder email',
+          'Client onboarding email',
+          'Final nudge email',
+        ],
+      },
+      {
+        label: 'LinkedIn',
+        items: [
+          'LinkedIn connection request script',
+          'LinkedIn first message (post-accept)',
+          'LinkedIn follow-up (1)',
+          'LinkedIn follow-up (2)',
+          'LinkedIn follow-up (3)',
+        ],
+      },
+      {
+        label: 'WhatsApp',
+        items: [
+          'WhatsApp intro message',
+          'WhatsApp service catalog (quick)',
+          'WhatsApp lead nurturing message',
+        ],
+      },
+      {
+        label: 'Lead Gen & Tips',
+        items: [
+          'LinkedIn filters — Founders (US)',
+          'LinkedIn filters — Marketing Managers (IN)',
+          'Hunter email finder steps',
+          'Apollo search tips for B2B',
+          'Tips to improve replies this week',
+          'Daily task sheet example',
+        ],
+      },
+    ];
+    if (dynamicSuggestions.length) {
+      groups.push({ label: 'Resources', items: dynamicSuggestions.slice(0, 20) });
+    }
+    return groups;
+  }, [dynamicSuggestions]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -371,49 +413,66 @@ export function AiChatbot() {
                 <SelectItem value="hinglish">Hinglish</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {[...staticSuggestions, ...dynamicSuggestions].slice(0, 50).map((s: string, i: number) => (
-              <Button key={`${s}-${i}`} variant="outline" size="sm" className="shrink-0" onClick={() => setInput(s)}>
-                {s}
-              </Button>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8">
-                  <Trash2 className="h-4 w-4 mr-1" /> Clear
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Clear chat history?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    You can clear only the conversation or clear everything including pinned.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <Button variant="secondary" onClick={clearChatKeepPinned}>Clear chat (keep pinned)</Button>
-                  <AlertDialogAction onClick={clearAll}>Clear all</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-            <Button variant="outline" size="sm" className="h-8" onClick={exportTxt}>
-              <FileText className="h-4 w-4 mr-1" /> Export .txt
-            </Button>
-            <Button variant="outline" size="sm" className="h-8" onClick={exportJson}>
-              <Download className="h-4 w-4 mr-1" /> Export .json
-            </Button>
-            <Button variant="outline" size="sm" className="h-8" onClick={syncNow} disabled={!auth.currentUser}>
-              <CloudUpload className="h-4 w-4 mr-1" /> Sync now
-            </Button>
-            <div className="flex items-center gap-2 ml-auto">
-              <span className="text-xs text-muted-foreground">Sync</span>
+            <div className="ml-auto flex items-center gap-2">
+              <span className="hidden sm:inline text-xs text-muted-foreground">Sync</span>
               <Switch checked={syncEnabled} onCheckedChange={(v: boolean) => setSyncEnabled(v)} />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-8 w-8" aria-label="Menu">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => { if (typeof window !== 'undefined' && window.confirm('Clear chat (keep pinned)?')) clearChatKeepPinned(); }}>
+                    <Trash2 className="mr-2 h-4 w-4" /> Clear chat
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { if (typeof window !== 'undefined' && window.confirm('Clear everything including pinned?')) clearAll(); }}>
+                    <Trash2 className="mr-2 h-4 w-4 text-destructive" /> Clear all
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={exportTxt}>
+                    <FileText className="mr-2 h-4 w-4" /> Export .txt
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportJson}>
+                    <Download className="mr-2 h-4 w-4" /> Export .json
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem disabled={!auth.currentUser} onClick={syncNow}>
+                    <CloudUpload className="mr-2 h-4 w-4" /> Sync now
+                  </DropdownMenuItem>
+                  <DropdownMenuCheckboxItem checked={syncEnabled} onCheckedChange={(v: boolean) => setSyncEnabled(v)}>
+                    Cloud sync
+                  </DropdownMenuCheckboxItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
+
+          <div className="flex items-center justify-between mt-1">
+            <span className="text-xs text-muted-foreground">Suggestions</span>
+            <Button variant="ghost" size="sm" className="h-8" onClick={() => setShowSuggestions((v) => !v)}>
+              {showSuggestions ? 'Hide' : 'Show'}
+              <ChevronDown className={cn('ml-1 h-3 w-3 transition-transform', showSuggestions ? 'rotate-180' : '')} />
+            </Button>
+          </div>
+          {showSuggestions && (
+            <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {suggestionGroups.map((g) => (
+                <div key={g.label} className="rounded-md border bg-muted/40 p-2">
+                  <div className="text-xs font-medium text-muted-foreground mb-2">{g.label}</div>
+                  <div className="flex flex-wrap gap-2">
+                    {g.items.slice(0, 6).map((s: string, i: number) => (
+                      <Button key={`${g.label}-${i}`} variant="outline" size="sm" className="h-7 px-2 shrink-0" onClick={() => setInput(s)}>
+                        {s}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent className="flex-1 overflow-hidden">

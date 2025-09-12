@@ -356,8 +356,8 @@ export default function DashboardPage() {
         );
       case 'team':
         return (
-          <div className="p-4">
-            <PlaceholderContent icon={Users} title="Team Directory" description="The team directory is currently under maintenance." />
+          <div className="p-3 md:p-4">
+            <TeamDirectory />
           </div>
         );
       case 'chatbot':
