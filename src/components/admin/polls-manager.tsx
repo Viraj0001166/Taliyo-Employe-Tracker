@@ -8,15 +8,18 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { auth, db } from "@/lib/firebase";
-import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import type { Poll } from "@/lib/types";
-import { Check, Loader2, Plus, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
+import { Check, Loader2, Plus, Trash2, ToggleLeft, ToggleRight, Download } from "lucide-react";
 
 export function PollsManager() {
   const { toast } = useToast();
   const [question, setQuestion] = useState("");
   const [options, setOptions] = useState<string[]>(["Yes", "No"]);
   const [creating, setCreating] = useState(false);
+  const [anonymous, setAnonymous] = useState(false);
+  const [multi, setMulti] = useState(false);
+  const [expiresAt, setExpiresAt] = useState<string>("");
   const [polls, setPolls] = useState<Poll[]>([]);
   const [results, setResults] = useState<Record<string, number[]>>({});
 
@@ -29,7 +32,7 @@ export function PollsManager() {
     return () => unsub();
   }, []);
 
-  // Load live results for each poll (counts by option)
+  // Load live results for each poll (counts by option) and keep summary up to date
   useEffect(() => {
     const unsubscribers: Array<() => void> = [];
     for (const p of polls) {
@@ -37,9 +40,23 @@ export function PollsManager() {
         const counts = new Array((p.options || []).length).fill(0);
         snap.docs.forEach(d => {
           const idx = Number((d.data() as any)?.optionIndex ?? -1);
-        if (idx >= 0 && idx < counts.length) counts[idx] += 1;
+        if (Array.isArray((d.data() as any)?.optionIndexes)) {
+          const arr = (d.data() as any).optionIndexes as number[];
+          arr.forEach(i => { if (i >= 0 && i < counts.length) counts[i] += 1; });
+        } else if (idx >= 0 && idx < counts.length) {
+          counts[idx] += 1;
+        }
         });
         setResults(prev => ({ ...prev, [p.id]: counts }));
+        // Write summary doc for employees to read
+        (async () => {
+          try {
+            const total = counts.reduce((a, b) => a + b, 0);
+            const countsMap: Record<string, number> = {};
+            counts.forEach((c, i) => countsMap[String(i)] = c);
+            await setDoc(doc(db, 'polls', p.id, 'summary'), { counts: countsMap, total, updatedAt: serverTimestamp() }, { merge: true });
+          } catch {}
+        })();
       });
       unsubscribers.push(rUnsub);
     }
@@ -57,15 +74,25 @@ export function PollsManager() {
     setCreating(true);
     try {
       const uid = auth.currentUser?.uid || 'admin';
-      await addDoc(collection(db, 'polls'), {
+      const metaRef = await addDoc(collection(db, 'polls'), {
         question: question.trim(),
         options: cleaned,
         active: true,
+        anonymous,
+        multi,
+        ...(expiresAt ? { expiresAt: new Date(expiresAt) } : {}),
         createdAt: serverTimestamp(),
         createdBy: uid,
       });
+      // Initialize summary doc
+      const zeroMap: Record<string, number> = {};
+      for (let i = 0; i < cleaned.length; i++) zeroMap[String(i)] = 0;
+      await setDoc(doc(db, 'polls', metaRef.id, 'summary'), { counts: zeroMap, total: 0, updatedAt: serverTimestamp() }, { merge: true });
       setQuestion("");
       setOptions(["Yes", "No"]);
+      setAnonymous(false);
+      setMulti(false);
+      setExpiresAt("");
       toast({ title: 'Poll created' });
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Create failed', description: e?.message || 'Could not create poll' });
@@ -93,6 +120,36 @@ export function PollsManager() {
     }
   };
 
+  const exportCsv = async (p: Poll) => {
+    try {
+      const respSnap = await getDocs(collection(db, 'polls', p.id, 'responses'));
+      const rows: string[] = [];
+      rows.push('responseId,type,value');
+      respSnap.docs.forEach(d => {
+        const data = d.data() as any;
+        if (Array.isArray(data.optionIndexes)) {
+          rows.push(`${d.id},multi,"[${data.optionIndexes.join(' ')}]"`);
+        } else if (typeof data.optionIndex === 'number') {
+          rows.push(`${d.id},single,${data.optionIndex}`);
+        }
+      });
+      const csv = rows.join('\n');
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `poll-${p.id}-${stamp}.csv`;
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'Export failed', description: e?.message || 'Could not export CSV' });
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -113,6 +170,18 @@ export function PollsManager() {
             ))}
             <Button type="button" variant="secondary" size="sm" onClick={addOption}><Plus className="h-4 w-4 mr-1"/>Add option</Button>
           </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} /> Anonymous
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={multi} onChange={(e) => setMulti(e.target.checked)} /> Allow multiple selections
+            </label>
+            <div>
+              <Label htmlFor="expires">Expires at (optional)</Label>
+              <Input id="expires" type="datetime-local" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
+            </div>
+          </div>
           <div className="flex justify-end">
             <Button onClick={createPoll} disabled={creating}>{creating && <Loader2 className="h-4 w-4 animate-spin mr-2"/>}Create Poll</Button>
           </div>
@@ -131,7 +200,13 @@ export function PollsManager() {
               {polls.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell className="font-medium max-w-[360px] truncate" title={p.question}>{p.question}</TableCell>
-                  <TableCell>{p.active ? 'Active' : 'Closed'}</TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      <div>{p.active ? 'Active' : 'Closed'}</div>
+                      {p.expiresAt && <div className="text-xs text-muted-foreground">Exp: {(p as any).expiresAt?.seconds ? new Date((p as any).expiresAt.seconds * 1000).toLocaleString() : ''}</div>}
+                      <div className="text-xs text-muted-foreground">{p.anonymous ? 'Anonymous' : 'Identified'}{p.multi ? ' • Multi' : ''}</div>
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <div className="text-sm text-muted-foreground">
                       {(p.options || []).map((o, i) => (
@@ -142,6 +217,7 @@ export function PollsManager() {
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button variant="outline" size="sm" onClick={() => toggleActive(p)}>{p.active ? <ToggleLeft className="h-4 w-4 mr-1"/> : <ToggleRight className="h-4 w-4 mr-1"/>}{p.active ? 'Close' : 'Open'}</Button>
+                      <Button variant="outline" size="sm" onClick={() => exportCsv(p)}><Download className="h-4 w-4 mr-1"/>CSV</Button>
                       <Button variant="destructive" size="sm" onClick={() => removePoll(p)}><Trash2 className="h-4 w-4"/></Button>
                     </div>
                   </TableCell>

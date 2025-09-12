@@ -148,12 +148,15 @@ export interface Poll {
   createdAt: Timestamp | Date;
   createdBy: string; // admin uid
   expiresAt?: Timestamp | Date;
+  anonymous?: boolean; // hide voter identity from UI
+  multi?: boolean;     // allow multiple selections
 }
 
 export interface PollResponse {
   id: string; // uid as id
   pollId: string;
-  optionIndex: number; // 0-based
+  optionIndex?: number; // 0-based (single choice)
+  optionIndexes?: number[]; // multi-select
   respondedAt: Timestamp | Date;
 }
 
@@ -166,6 +169,8 @@ export interface ProjectTask {
   status: 'todo' | 'in-progress' | 'done';
   createdAt: Timestamp | Date;
   createdBy: string; // admin uid
+  dueDate?: Timestamp | Date;
+  attachments?: Array<{ name: string; url: string; path: string; uploadedAt: Timestamp | Date }>
 }
 
 export interface Project {

@@ -17,19 +17,48 @@ service cloud.firestore {
                               request.resource.data.options is list &&
                               request.resource.data.options.size() >= 2 &&
                               request.resource.data.active is bool &&
+                              (!request.resource.data.keys().hasAny(['anonymous']) || request.resource.data.anonymous is bool) &&
+                              (!request.resource.data.keys().hasAny(['multi']) || request.resource.data.multi is bool) &&
+                              (!request.resource.data.keys().hasAny(['expiresAt']) || request.resource.data.expiresAt is timestamp) &&
                               request.resource.data.createdBy is string &&
                               request.resource.data.createdAt is timestamp;
         allow delete: if isAdmin() || isSuperAdmin();
     }
-    match /polls/{pollId}/responses/{uid} {
-        // One response per user; allow create by the owner only
-        allow create: if request.auth != null && uid == request.auth.uid &&
-                      request.resource.data.optionIndex is number &&
-                      request.resource.data.respondedAt is timestamp;
-        // Read own response; admins can read all
-        allow read: if request.auth != null && (uid == request.auth.uid || isAdmin() || isSuperAdmin());
-        // Disallow updates and deletes by non-admins to keep results stable
+    // Responses (responseId can be uid for non-anon, random for anon)
+    match /polls/{pollId}/responses/{responseId} {
+        // Allow creating a response when poll is active and not expired
+        allow create: if request.auth != null &&
+                      (
+                        // Single-choice
+                        (request.resource.data.keys().hasAny(['optionIndex']) && request.resource.data.optionIndex is number) ||
+                        // Multi-select
+                        (request.resource.data.keys().hasAny(['optionIndexes']) && request.resource.data.optionIndexes is list)
+                      ) &&
+                      request.resource.data.respondedAt is timestamp &&
+                      exists(/databases/$(database)/documents/polls/$(pollId)) &&
+                      get(/databases/$(database)/documents/polls/$(pollId)).data.active == true &&
+                      (
+                        !get(/databases/$(database)/documents/polls/$(pollId)).data.keys().hasAny(['expiresAt']) ||
+                        get(/databases/$(database)/documents/polls/$(pollId)).data.expiresAt > request.time
+                      );
+        // Admins can read all; others cannot (to preserve anonymity). Users can read their own response if responseId == uid
+        allow read: if isAdmin() || isSuperAdmin() || (request.auth != null && responseId == request.auth.uid);
+        // Only admins can modify/delete responses.
         allow update, delete: if isAdmin() || isSuperAdmin();
+    }
+    // Mark that a user has voted (used for anonymous polls too)
+    match /polls/{pollId}/voters/{uid} {
+        allow create: if request.auth != null && uid == request.auth.uid && request.resource.data.respondedAt is timestamp;
+        allow read: if request.auth != null && uid == request.auth.uid;
+        allow update: if false;
+        allow delete: if isAdmin() || isSuperAdmin();
+    }
+    // Aggregated results summary for quick reads by all employees
+    match /polls/{pollId}/summary {
+        allow read: if request.auth != null;
+        // MVP: allow any authenticated update; ideally restrict via Cloud Functions
+        allow create, update: if request.auth != null;
+        allow delete: if isAdmin() || isSuperAdmin();
     }
 
     // Projects & Tasks
@@ -56,7 +85,7 @@ service cloud.firestore {
     // Validation helpers
     function userSelfUpdateAllowed(userId) {
       // Employees can only edit safe personal fields. Admin-only fields (name, title, department, employeeCode, joiningDate, reportingManager) are excluded.
-      let allowed = ['avatar','phone','phoneHidden','locationCity','locationState','locationCountry','roleDescription','linkedin','instagram','github'];
+      let allowed = ['avatar','phone','phoneHidden','locationCity','locationState','locationCountry','roleDescription','linkedin','instagram','github','theme'];
       let changed = request.resource.data.diff(resource.data).changedKeys();
       return isOwner(userId) &&
              changed.hasOnly(allowed) &&
@@ -69,7 +98,8 @@ service cloud.firestore {
              (!changed.hasAny(['roleDescription']) || request.resource.data.roleDescription is string) &&
              (!changed.hasAny(['linkedin']) || request.resource.data.linkedin is string) &&
              (!changed.hasAny(['instagram']) || request.resource.data.instagram is string) &&
-             (!changed.hasAny(['github']) || request.resource.data.github is string);
+             (!changed.hasAny(['github']) || request.resource.data.github is string) &&
+             (!changed.hasAny(['theme']) || (request.resource.data.theme == 'light' || request.resource.data.theme == 'dark'));
     }
 
     function isValidTaskEmployeeUpdate() {

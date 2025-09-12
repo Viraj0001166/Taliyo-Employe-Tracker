@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { auth, db } from "@/lib/firebase";
-import { addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc } from "firebase/firestore";
+import { addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, getDoc } from "firebase/firestore";
 import type { Poll } from "@/lib/types";
 import { Loader2 } from "lucide-react";
 
@@ -17,6 +17,7 @@ export function PollsWidget() {
   const [uid, setUid] = useState<string | null>(null);
   const [polls, setPolls] = useState<Poll[]>([]);
   const [selected, setSelected] = useState<Record<string, number>>({});
+  const [selectedMulti, setSelectedMulti] = useState<Record<string, number[]>>({});
   const [submitting, setSubmitting] = useState<Record<string, boolean>>({});
   const [responses, setResponses] = useState<Record<string, number[]>>({});
   const [hasVoted, setHasVoted] = useState<Record<string, boolean>>({});
@@ -39,38 +40,59 @@ export function PollsWidget() {
   useEffect(() => {
     const unsubs: Array<() => void> = [];
     for (const p of polls) {
-      // my response doc
+      // detect if I voted
       if (uid) {
-        const myDoc = doc(db, 'polls', p.id, 'responses', uid);
-        const unsubMine = onSnapshot(myDoc, (snap) => {
-          setHasVoted(prev => ({ ...prev, [p.id]: snap.exists() }));
-        });
-        unsubs.push(unsubMine);
+        if (p.anonymous) {
+          const you = doc(db, 'polls', p.id, 'voters', uid);
+          const unsubMine = onSnapshot(you, (snap) => setHasVoted(prev => ({ ...prev, [p.id]: snap.exists() })));
+          unsubs.push(unsubMine);
+        } else {
+          const myDoc = doc(db, 'polls', p.id, 'responses', uid);
+          const unsubMine = onSnapshot(myDoc, (snap) => setHasVoted(prev => ({ ...prev, [p.id]: snap.exists() })));
+          unsubs.push(unsubMine);
+        }
       }
-      // counts
-      const unsubCounts = onSnapshot(collection(db, 'polls', p.id, 'responses'), (snap) => {
-        const counts = new Array((p.options || []).length).fill(0);
-        snap.docs.forEach(d => {
-          const idx = Number((d.data() as any)?.optionIndex ?? -1);
-          if (idx >= 0 && idx < counts.length) counts[idx] += 1;
-        });
-        setResponses(prev => ({ ...prev, [p.id]: counts }));
+      // subscribe to summary for counts
+      const sumDoc = doc(db, 'polls', p.id, 'summary');
+      const unsubSummary = onSnapshot(sumDoc, (snap) => {
+        const data = snap.data() as any;
+        if (data && data.counts) {
+          const arr = (p.options || []).map((_, i) => Number(data.counts[String(i)] || 0));
+          setResponses(prev => ({ ...prev, [p.id]: arr }));
+        } else {
+          // fallback: zero counts
+          setResponses(prev => ({ ...prev, [p.id]: new Array((p.options || []).length).fill(0) }));
+        }
       });
-      unsubs.push(unsubCounts);
+      unsubs.push(unsubSummary);
     }
     return () => { unsubs.forEach(u => u()); };
   }, [polls.map(p => p.id).join('|'), uid]);
 
   const submit = async (poll: Poll) => {
     if (!uid) { toast({ variant: 'destructive', title: 'Not signed in' }); return; }
-    const choice = selected[poll.id];
-    if (typeof choice !== 'number') { toast({ variant: 'destructive', title: 'Please select an option' }); return; }
+    const now = Date.now();
+    const expired = (poll as any).expiresAt?.seconds ? ((poll as any).expiresAt.seconds * 1000) <= now : false;
+    if (!poll.active || expired) { toast({ variant: 'destructive', title: 'Poll is closed' }); return; }
+
+    let payload: any = { respondedAt: serverTimestamp() };
+    if (poll.multi) {
+      const arr = selectedMulti[poll.id] || [];
+      if (!arr.length) { toast({ variant: 'destructive', title: 'Please select at least one option' }); return; }
+      payload.optionIndexes = arr;
+    } else {
+      const choice = selected[poll.id];
+      if (typeof choice !== 'number') { toast({ variant: 'destructive', title: 'Please select an option' }); return; }
+      payload.optionIndex = choice;
+    }
     setSubmitting(prev => ({ ...prev, [poll.id]: true }));
     try {
-      await setDoc(doc(db, 'polls', poll.id, 'responses', uid), {
-        optionIndex: choice,
-        respondedAt: serverTimestamp(),
-      });
+      if (poll.anonymous) {
+        await addDoc(collection(db, 'polls', poll.id, 'responses'), payload);
+        await setDoc(doc(db, 'polls', poll.id, 'voters', uid), { respondedAt: serverTimestamp() }, { merge: true });
+      } else {
+        await setDoc(doc(db, 'polls', poll.id, 'responses', uid), payload);
+      }
       toast({ title: 'Thanks for your response!' });
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Submit failed', description: e?.message || 'Could not submit vote' });
@@ -98,15 +120,36 @@ export function PollsWidget() {
               <div className="font-medium">{p.question}</div>
               {!voted ? (
                 <div className="space-y-3">
-                  <RadioGroup value={String(selected[p.id] ?? '')} onValueChange={(v) => setSelected(prev => ({ ...prev, [p.id]: Number(v) }))}>
-                    {p.options.map((opt, idx) => (
-                      <div key={idx} className="flex items-center space-x-2">
-                        <RadioGroupItem id={`opt-${p.id}-${idx}`} value={String(idx)} />
-                        <Label htmlFor={`opt-${p.id}-${idx}`}>{opt}</Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
-                  <Button onClick={() => submit(p)} disabled={!!submitting[p.id]}> {submitting[p.id] && <Loader2 className="h-4 w-4 animate-spin mr-2"/>} Submit</Button>
+                  {p.multi ? (
+                    <div className="space-y-2">
+                      {p.options.map((opt, idx) => {
+                        const arr = selectedMulti[p.id] || [];
+                        const checked = arr.includes(idx);
+                        return (
+                          <label key={idx} className="flex items-center gap-2 text-sm">
+                            <input type="checkbox" checked={checked} onChange={(e) => {
+                              setSelectedMulti(prev => {
+                                const cur = new Set(prev[p.id] || []);
+                                if (e.target.checked) cur.add(idx); else cur.delete(idx);
+                                return { ...prev, [p.id]: Array.from(cur).sort((a,b)=>a-b) };
+                              });
+                            }} />
+                            {opt}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <RadioGroup value={String(selected[p.id] ?? '')} onValueChange={(v) => setSelected(prev => ({ ...prev, [p.id]: Number(v) }))}>
+                      {p.options.map((opt, idx) => (
+                        <div key={idx} className="flex items-center space-x-2">
+                          <RadioGroupItem id={`opt-${p.id}-${idx}`} value={String(idx)} />
+                          <Label htmlFor={`opt-${p.id}-${idx}`}>{opt}</Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  )}
+                  <Button onClick={() => submit(p)} disabled={!!submitting[p.id] || !p.active || ((p as any).expiresAt?.seconds ? ((p as any).expiresAt.seconds * 1000) <= Date.now() : false)}> {submitting[p.id] && <Loader2 className="h-4 w-4 animate-spin mr-2"/>} Submit</Button>
                 </div>
               ) : (
                 <div className="space-y-2">

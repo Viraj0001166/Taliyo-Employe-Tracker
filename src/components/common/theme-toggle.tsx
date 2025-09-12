@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun } from "lucide-react";
+import { auth, db } from "@/lib/firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 function getInitialTheme(): "light" | "dark" {
   if (typeof window === "undefined") return "light";
@@ -16,11 +18,29 @@ export function ThemeToggle() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
   useEffect(() => {
-    const t = getInitialTheme();
-    setTheme(t);
-    if (typeof document !== 'undefined') {
-      document.documentElement.classList.toggle('dark', t === 'dark');
-    }
+    const apply = (t: "light" | "dark") => {
+      setTheme(t);
+      if (typeof document !== 'undefined') {
+        document.documentElement.classList.toggle('dark', t === 'dark');
+      }
+    };
+
+    // Prefer user profile theme if available
+    const unsub = auth.onAuthStateChanged(async (u) => {
+      try {
+        if (u) {
+          const ref = doc(db, 'users', u.uid);
+          const snap = await getDoc(ref);
+          const t = (snap.exists() && (snap.data() as any).theme) ? (snap.data() as any).theme : getInitialTheme();
+          apply(t === 'dark' ? 'dark' : 'light');
+        } else {
+          apply(getInitialTheme());
+        }
+      } catch {
+        apply(getInitialTheme());
+      }
+    });
+    return () => unsub();
   }, []);
 
   const toggle = () => {
@@ -30,6 +50,12 @@ export function ThemeToggle() {
       document.documentElement.classList.toggle('dark', next === 'dark');
     }
     try { window.localStorage.setItem("theme", next); } catch {}
+    try {
+      const u = auth.currentUser;
+      if (u) {
+        setDoc(doc(db, 'users', u.uid), { theme: next }, { merge: true });
+      }
+    } catch {}
   };
 
   return (
