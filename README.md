@@ -34,12 +34,64 @@ A modern employee performance tracking and admin portal built with Next.js, Fire
   - Shadcn/ui component system, semantic tokens, responsive layouts, keyboard-friendly
   - Email masking for non-admin users in sensitive lists (privacy-first)
 
-### ✅ Full feature list (A–Z)
+### ✅ Full feature list
 
-- Authentication & Sessions
-  - Email/Password auth, protected routes, graceful auth-state handling
-  - Session controls: logout current device, revoke all sessions, export my data
-- Admin: User Management
+### Employee Dashboard
+
+#### 1. Daily Logs & Attendance
+- **Time Tracking**: Clock in/out with geolocation validation
+- **Daily Logs**: Submit work reports with task details and time spent
+- **Leave Management**: View and apply for leaves with calendar integration
+- **Attendance Calendar**: Visual calendar showing attendance status (Present/Absent/Leave)
+
+#### 2. Task & Project Management
+- **My Tasks**: View assigned tasks with priorities and deadlines
+- **Task Updates**: Mark tasks as in-progress/completed
+- **Time Logs**: Log hours against specific tasks/projects
+- **Project Overview**: Track progress of assigned projects
+
+#### 3. Team Collaboration
+- **Team Directory**: Search and connect with team members
+- **Announcements**: Company-wide and department-specific updates
+- **Birthdays & Work Anniversaries**: Never miss important dates
+- **Organization Chart**: Visual hierarchy of reporting structure
+
+#### 4. Performance & Growth
+- **KPI Dashboard**: Track personal performance metrics
+- **Goals & OKRs**: Set and monitor quarterly objectives
+- **Skill Matrix**: View and update skill proficiency levels
+- **Training & Development**: Access learning resources and courses
+
+#### 5. Document Hub
+- **Personal Documents**: Upload and manage certificates, IDs, and credentials
+- **Company Policies**: Access HR policies and employee handbook
+- **Templates**: Download commonly used document templates
+- **eSignatures**: Sign documents digitally
+
+#### 6. Communication
+- **Announcements**: Company news and updates
+- **Polls & Surveys**: Participate in company polls
+- **Feedback System**: Submit suggestions and feedback
+- **Chat Support**: Quick access to HR/IT support
+
+#### 7. Profile & Settings
+- **Personal Information**: Update contact details and emergency contacts
+- **Password Management**: Change password and security settings
+- **Notification Preferences**: Customize email and in-app notifications
+- **Theme & Display**: Light/dark mode and layout preferences
+
+#### 8. Quick Actions
+- **Request Leave**: Single-click leave application
+- **Download Payslips**: Access salary slips and tax documents
+- **Raise Ticket**: Log IT/HR/Admin support tickets
+- **Book Resources**: Reserve meeting rooms or equipment
+
+---
+
+### Admin & System Features
+
+- **Authentication**: Secure login with email/password, password reset, and role-based access control.
+- **Admin: User Management**
   - Create/Edit employees, role switch (employee/admin), set password, delete user (with optional Storage cleanup)
   - Status management: Active, Training, Inactive; employee code and metadata
 - Team Directory

@@ -23,6 +23,8 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, Sid
 import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 const TeamDirectory = dynamic(() => import('@/components/dashboard/team-directory').then(m => m.TeamDirectory), { ssr: false, loading: () => <div className="p-4 text-sm text-muted-foreground">Loading directory…</div> });
 import { signOut } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -74,6 +76,7 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [taskFields, setTaskFields] = useState<TaskField[]>([]);
   const [mounted, setMounted] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
@@ -106,6 +109,18 @@ export default function DashboardPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Show app-use guide once per session after employee data is available
+  useEffect(() => {
+    if (!mounted || !employeeData) return;
+    try {
+      const seen = sessionStorage.getItem('guidePromptSeen');
+      if (!seen) {
+        setShowGuide(true);
+        sessionStorage.setItem('guidePromptSeen', '1');
+      }
+    } catch {}
+  }, [mounted, employeeData]);
 
   useEffect(() => {
     if (!employeeData) {
@@ -454,6 +469,14 @@ export default function DashboardPage() {
                 </SidebarMenuItem>
               )}
               <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Guide">
+                  <Link href="/employee/guide?lang=hi">
+                    <BookOpen className="h-5 w-5 mr-3" />
+                    <span>Guide</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
                 <SidebarMenuButton onClick={() => setActiveTab('chatbot')} isActive={activeTab === 'chatbot'}>
                   <MessageSquare className="h-5 w-5 mr-3" />
                   AI Assistant
@@ -477,6 +500,34 @@ export default function DashboardPage() {
           <main className="flex flex-1 flex-col">{renderContent()}</main>
         </div>
       </div>
+      <Dialog open={showGuide} onOpenChange={setShowGuide}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Quick Guide (Hinglish)</DialogTitle>
+            <DialogDescription>
+              Employee portal ko sahi tarike se use karne ke liye short guide.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 text-sm">
+            <p>• Dashboard pe KPIs, tasks, announcements aur polls milte hain.</p>
+            <p>• Daily Logs me aaj ka work add kijiye; Attendance calendar se status dekhiye.</p>
+            <p>• My Tasks me assigned work ko complete mark karein; Leaves se request bhejein.</p>
+            <p>• Resources aur Documents me templates aur policies available hain.</p>
+          </div>
+          <DialogFooter className="gap-2">
+            <div className="mr-auto flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Language:</span>
+              <Button asChild size="sm" variant="default">
+                <Link href="/employee/guide?lang=hi">Hinglish</Link>
+              </Button>
+              <Button asChild size="sm" variant="outline">
+                <Link href="/employee/guide?lang=en">English</Link>
+              </Button>
+            </div>
+            <Button variant="secondary" onClick={() => setShowGuide(false)}>Later</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 }

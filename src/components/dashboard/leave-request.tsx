@@ -34,6 +34,9 @@ export function LeaveRequestWidget() {
     const unsub = onSnapshot(q, (snap) => {
       const arr = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) } as LeaveRequest));
       setItems(arr);
+    }, (err) => {
+      console.warn('leaves subscribe failed', err);
+      setItems([]);
     });
     return () => unsub();
   }, [uid]);

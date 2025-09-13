@@ -28,31 +28,42 @@ export function PollsWidget() {
   }, []);
 
   useEffect(() => {
+    // Wait for auth; rules require request.auth != null to read polls
+    if (!uid) { setPolls([]); return; }
     const q = query(collection(db, 'polls'), orderBy('createdAt', 'desc'));
     const unsub = onSnapshot(q, (snap) => {
       const arr = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) } as Poll)).filter(p => p.active);
       setPolls(arr);
-    }, () => setPolls([]));
+    }, (err) => {
+      console.warn('polls subscribe failed', err);
+      setPolls([]);
+    });
     return () => unsub();
-  }, []);
+  }, [uid]);
 
   // Subscribe to my vote and counts per poll
   useEffect(() => {
     const unsubs: Array<() => void> = [];
+    // Avoid snapshot listeners before auth; prevents permission-denied noise
+    if (!uid) return () => { /* noop */ };
     for (const p of polls) {
       // detect if I voted
-      if (uid) {
-        if (p.anonymous) {
-          const you = doc(db, 'polls', p.id, 'voters', uid);
-          const unsubMine = onSnapshot(you, (snap) => setHasVoted(prev => ({ ...prev, [p.id]: snap.exists() })));
-          unsubs.push(unsubMine);
-        } else {
-          const myDoc = doc(db, 'polls', p.id, 'responses', uid);
-          const unsubMine = onSnapshot(myDoc, (snap) => setHasVoted(prev => ({ ...prev, [p.id]: snap.exists() })));
-          unsubs.push(unsubMine);
-        }
+      if (p.anonymous) {
+        const you = doc(db, 'polls', p.id, 'voters', uid);
+        const unsubMine = onSnapshot(you, (snap) => setHasVoted(prev => ({ ...prev, [p.id]: snap.exists() })), (err) => {
+          console.warn('poll voter subscribe failed', err);
+          setHasVoted(prev => ({ ...prev, [p.id]: false }));
+        });
+        unsubs.push(unsubMine);
+      } else {
+        const myDoc = doc(db, 'polls', p.id, 'responses', uid);
+        const unsubMine = onSnapshot(myDoc, (snap) => setHasVoted(prev => ({ ...prev, [p.id]: snap.exists() })), (err) => {
+          console.warn('poll my response subscribe failed', err);
+          setHasVoted(prev => ({ ...prev, [p.id]: false }));
+        });
+        unsubs.push(unsubMine);
       }
-      // subscribe to summary for counts
+      // subscribe to summary for counts (requires auth as well)
       const sumDoc = doc(db, 'polls', p.id, 'summary');
       const unsubSummary = onSnapshot(sumDoc, (snap) => {
         const data = snap.data() as any;
@@ -60,9 +71,11 @@ export function PollsWidget() {
           const arr = (p.options || []).map((_, i) => Number(data.counts[String(i)] || 0));
           setResponses(prev => ({ ...prev, [p.id]: arr }));
         } else {
-          // fallback: zero counts
           setResponses(prev => ({ ...prev, [p.id]: new Array((p.options || []).length).fill(0) }));
         }
+      }, (err) => {
+        console.warn('poll summary subscribe failed', err);
+        setResponses(prev => ({ ...prev, [p.id]: new Array((p.options || []).length).fill(0) }));
       });
       unsubs.push(unsubSummary);
     }
