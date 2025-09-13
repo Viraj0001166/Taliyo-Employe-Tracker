@@ -123,16 +123,25 @@ pnpm start
 ```
 
 <details>
-<summary><b>🖼️ Screenshots / Demos (placeholders)</b></summary>
+<summary><b>🖼️ Screenshots / Demos</b></summary>
 
-- Dashboard  
-  ![Dashboard](https://placehold.co/1200x650/111111/ffffff?text=Dashboard+Preview)
+<div align="center">
 
-- AI Assistant  
-  ![AI Assistant](https://placehold.co/1200x650/111111/ffffff?text=AI+Assistant+Preview)
+<!-- Full Dashboard -->
+<img src="docs/screenshots/dashboard.png" alt="Dashboard" />
 
-- Mobile View  
-  ![Mobile](https://placehold.co/420x800/111111/ffffff?text=Mobile+View)
+<!-- AI Assistant Widget -->
+<img src="docs/screenshots/ai-assistant.png" alt="AI Assistant" />
+
+<!-- Mobile View (narrow) -->
+<img src="docs/screenshots/mobile.png" alt="Mobile View" width="360" />
+
+</div>
+
+<sub>If images don't render, add your screenshots at:
+<code>docs/screenshots/dashboard.png</code>,
+<code>docs/screenshots/ai-assistant.png</code>,
+<code>docs/screenshots/mobile.png</code>.</sub>
 
 </details>
 
