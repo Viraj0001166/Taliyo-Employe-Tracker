@@ -7,6 +7,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft } from "lucide-react";
 
+// Ensure this page is always rendered dynamically to avoid prerender errors
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default function EmployeeGuidePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
