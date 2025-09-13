@@ -1,8 +1,8 @@
-﻿<div align="center">
+<div align="center">
 
-# Taliyo Employee Tracker
+  # Taliyo Employee Tracker
 
-Modern HR portal for daily logs, tasks, polls, resources, and AI assistance  built with Next.js, Firebase, and Tailwind CSS.
+Modern HR employee portal — daily logs, tasks, polls, resources, and an AI assistant. Built with Next.js, Firebase, and Tailwind CSS.
 
 [![Build](https://img.shields.io/badge/build-Automated-22c55e?logo=githubactions&logoColor=white)](https://github.com/Viraj0001166/Taliyo-Employe-Tracker/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-0ea5e9.svg)](#-license)
@@ -11,39 +11,38 @@ Modern HR portal for daily logs, tasks, polls, resources, and AI assistance  bui
 [![PRs](https://img.shields.io/github/issues-pr/Viraj0001166/Taliyo-Employe-Tracker?color=8b5cf6)](https://github.com/Viraj0001166/Taliyo-Employe-Tracker/pulls)
 [![Contributions welcome](https://img.shields.io/badge/Contributions-welcome-10b981.svg)](#-contributing)
 
-</div>
+  </div>
 
-##  Table of Contents
-- [ About the Project](#-about-the-project)
-- [ Features](#-features)
-- [ Tech Stack](#-tech-stack)
-- [ Installation](#-installation)
-- [ Usage](#-usage)
-- [ Folder Structure](#-folder-structure)
-- [ Contributing](#-contributing)
-- [ License](#-license)
-- [ Contact](#-contact)
-
----
-
-##  About the Project
-
-Taliyo Employee Tracker is a unified employee portal that streamlines day-to-day work: log daily tasks, request leaves, track KPIs, participate in polls, browse resources, and get AI-powered help  all in one modern, responsive dashboard.
-
-###  Features
--  Daily Logs & KPI Tracking
--  Assigned Tasks & Quick Stats
--  Company Polls
--  Announcements
--  Resources & Templates Library
--  AI Assistant (Resource-aware)
--  Leave Requests with Status
--  Team Directory
--  Polished UI with dark mode
+## 📚 Table of Contents
+- [💡 About the Project](#-about-the-project)
+- [🚀 Features](#-features)
+- [🧰 Tech Stack](#-tech-stack)
+- [🛠️ Installation](#-installation)
+- [▶️ Usage](#-usage)
+- [🗂️ Folder Structure](#-folder-structure)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
+- [📬 Contact](#-contact)
 
 ---
 
-##  Tech Stack
+## 💡 About the Project
+
+Taliyo Employee Tracker is a unified employee portal that streamlines day-to-day work for teams. Log daily tasks, request leaves, track KPIs, participate in polls, browse internal resources, and get AI-powered help — all in one modern, responsive dashboard.
+
+### ✨ Highlights
+- ✅ Daily logs & KPI tracking
+- 📝 Assigned tasks with quick stats
+- 📊 Company polls & announcements
+- 📚 Resources & templates library
+- 🤖 AI assistant (resource-aware)
+- 🗓️ Leave requests with status tracking
+- 👥 Team directory
+- 🌙 Polished UI with dark mode
+
+---
+
+## 🧰 Tech Stack
 
 <div align="center">
 
@@ -62,7 +61,7 @@ Taliyo Employee Tracker is a unified employee portal that streamlines day-to-day
 
 ---
 
-##  Installation
+## 🛠️ Installation
 
 > Prerequisites: Node 18+, pnpm (recommended) or npm, and a Firebase project.
 
@@ -104,12 +103,13 @@ GEMINI_API_KEY=...
 4) Start the dev server
 ```bash
 pnpm dev
-# http://localhost:3000
+# Dev server runs by default with Turbopack on port 9002 (see package.json)
+# http://localhost:9002
 ```
 
 ---
 
-##  Usage
+## ▶️ Usage
 
 ### Start development
 ```bash
@@ -123,7 +123,7 @@ pnpm start
 ```
 
 <details>
-<summary><b> Screenshots / Demos (placeholders)</b></summary>
+<summary><b>🖼️ Screenshots / Demos (placeholders)</b></summary>
 
 - Dashboard  
   ![Dashboard](https://placehold.co/1200x650/111111/ffffff?text=Dashboard+Preview)
@@ -137,7 +137,7 @@ pnpm start
 </details>
 
 <details>
-<summary><b> Sample API (example)</b></summary>
+<summary><b>🧪 Sample API</b></summary>
 
 Suggest improvements from weekly logs:
 ```bash
@@ -159,59 +159,58 @@ Sample response:
 
 ---
 
-##  Folder Structure
+## 🗂️ Folder Structure
 
 ```bash
 Taliyo-Employe-Tracker/
- docs/
-   blueprint.md
-   employee-guide-hindi.md
- public/
-   logo-circle.svg
-   logo-mark.svg
-   tech-illustrations/
- src/
-   ai/
-     flows/
-     prompts/
-     genkit.ts
-   app/
-     admin/
-     api/
-       suggest-improvements/route.ts
-     dashboard/page.tsx
-     employee/guide/
+  docs/
+    blueprint.md
+    employee-guide-hindi.md
+  public/
+    logo-circle.svg
+    logo-mark.svg
+    tech-illustrations/
+  src/
+    ai/
+      flows/
+      prompts/
+      genkit.ts
+    app/
+      admin/
+      api/
+        suggest-improvements/route.ts
+      dashboard/page.tsx
+      employee/guide/
         page.tsx
         layout.tsx
-   components/
-     dashboard/
-       leave-request.tsx
-       weekly-summary.tsx
-       ai-chatbot.tsx
-     ui/
-   hooks/
-   lib/
-      firebase.ts
-      types.ts
- .env.example
- next.config.ts
- tailwind.config.ts
- package.json
- pnpm-lock.yaml
+    components/
+      dashboard/
+        leave-request.tsx
+        weekly-summary.tsx
+        ai-chatbot.tsx
+      ui/
+    hooks/
+    lib/
+       firebase.ts
+       types.ts
+  .env.example
+  next.config.ts
+  tailwind.config.ts
+  package.json
+  pnpm-lock.yaml
 ```
 
 ---
 
-##  Contributing
+## 🤝 Contributing
 
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-5e60ce.svg)](https://www.contributor-covenant.org/version/2/1/code_of_conduct/)
 
-- Submit issues for bugs, enhancements, and ideas.
+- Open an issue for bugs, enhancements, and ideas.
 - Fork the repo and create feature branches from `main`.
-- Write clear, concise commit messages.
-- Add tests or screenshots when applicable.
-- Ensure your PR title and description are descriptive.
-- Be kind and follow the code of conduct.
+- Keep commits focused; use clear messages.
+- Add screenshots or tests when applicable.
+- Follow the code of conduct and be kind.
 
 Quick start:
 ```bash
@@ -224,28 +223,27 @@ git push origin feat/your-feature
 
 ---
 
-##  License
+## 📄 License
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-0ea5e9.svg)](LICENSE)
 
-This project is licensed under the MIT License  see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
 ---
 
-##  Contact
+## 📬 Contact
 
-- **Maintainer:** Viraj Srivastav  
-- **Company:** Taliyo Technologies  
-- **Website:** https://taliyotechnologies.com  
-- **LinkedIn:** https://linkedin.com/viraj-srivastav/  
+- **Maintainer:** Viraj Srivastav
+- **Company:** Taliyo Technologies
+- **Website:** https://taliyotechnologies.com
+- **LinkedIn:** https://www.linkedin.com/in/viraj-srivastav/
 - **Email:** cofounder@taliyotechnologies.com
 
-> Replace the placeholders with your real links.
 
 ---
 
 <div align="center">
 
- Built with  by Taliyo Technologies 
+✨ Built with ❤️ by Taliyo Technologies ✨
 
 </div>
