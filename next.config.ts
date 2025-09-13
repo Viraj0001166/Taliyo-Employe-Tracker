@@ -88,6 +88,29 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+
+  // Silence optional server-only dependencies that cause noisy warnings in
+  // server bundles (Genkit/OpenTelemetry) and stub modules we don't use.
+  // This does not impact runtime behavior since those paths are optional.
+  webpack: (config) => {
+    config.resolve = config.resolve || {};
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      '@opentelemetry/exporter-jaeger': false,
+      '@genkit-ai/firebase': false,
+      'require-in-the-middle': false,
+    } as any;
+
+    // Reduce console noise from 3rd-party dynamic requires in server bundles
+    // (these are harmless and not used at runtime in our app paths)
+    config.ignoreWarnings = [
+      ...(config.ignoreWarnings || []),
+      /Critical dependency: the request of a dependency is an expression/,
+      /require\.extensions is not supported by webpack/,
+    ];
+
+    return config;
+  },
 };
 
 export default nextConfig;
